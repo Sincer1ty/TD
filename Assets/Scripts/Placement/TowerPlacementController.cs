@@ -38,6 +38,11 @@ namespace TD.Placement
         [SerializeField] private Color validPreviewColor = new Color(0.55f, 1f, 0.55f, 0.45f);
         [SerializeField] private Color invalidPreviewColor = new Color(1f, 0.35f, 0.35f, 0.45f);
 
+        [Header("Range Indicator")]
+        [SerializeField] private bool showRangeIndicator = true;
+        [SerializeField] private RangeIndicator rangeIndicatorPrefab;
+        [SerializeField] private RangeIndicator rangeIndicator;
+
         [Header("Overlay")]
         [SerializeField] private TileBase buildableHoverTile;
         [SerializeField] private TileBase blockedHoverTile;
@@ -121,6 +126,7 @@ namespace TD.Placement
 
             UpdateHoveredCell();
             UpdatePreview();
+            UpdateRangeIndicator();
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -141,7 +147,10 @@ namespace TD.Placement
             if (selectedTower == null)
             {
                 ClearSelectionVisuals();
+                return;
             }
+
+            ValidateSelectedTowerRange();
         }
 
         public void SelectTower(TowerPlacementData placementData)
@@ -310,6 +319,7 @@ namespace TD.Placement
 
             hasHoveredCell = false;
             hoveredCell = default(Vector3Int);
+            HideRangeIndicator();
         }
 
         private void ClearSelectionVisuals()
@@ -317,6 +327,7 @@ namespace TD.Placement
             ClearHover();
             SetPreviewVisible(false);
             DestroyPreview();
+            HideRangeIndicator();
         }
 
         private void UpdatePreview()
@@ -414,6 +425,74 @@ namespace TD.Placement
             previewData = null;
             previewRenderers = null;
             previewColliders = null;
+        }
+
+        private void UpdateRangeIndicator()
+        {
+            if (!showRangeIndicator || selectedTower == null || !hasHoveredCell)
+            {
+                HideRangeIndicator();
+                return;
+            }
+
+            float attackRange = selectedTower.AttackRange;
+            if (attackRange <= 0f)
+            {
+                HideRangeIndicator();
+                return;
+            }
+
+            RangeIndicator indicator = EnsureRangeIndicator();
+            if (indicator == null)
+            {
+                return;
+            }
+
+            bool canPlace = CanPlaceAtCell(hoveredCell);
+            indicator.SetValidState(canPlace);
+            indicator.Show(GetCellCenterWorld(hoveredCell), attackRange);
+        }
+
+        private RangeIndicator EnsureRangeIndicator()
+        {
+            if (rangeIndicator != null)
+            {
+                return rangeIndicator;
+            }
+
+            if (rangeIndicatorPrefab != null)
+            {
+                rangeIndicator = Instantiate(rangeIndicatorPrefab, transform);
+                return rangeIndicator;
+            }
+
+            GameObject indicatorObject = new GameObject("RangeIndicator");
+            indicatorObject.transform.SetParent(transform);
+
+            SpriteRenderer renderer = indicatorObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetGeneratedCircleSprite();
+            renderer.sortingOrder = 100;
+
+            rangeIndicator = indicatorObject.AddComponent<RangeIndicator>();
+            rangeIndicator.SetSpriteRenderer(renderer);
+            rangeIndicator.Hide();
+            return rangeIndicator;
+        }
+
+        private void HideRangeIndicator()
+        {
+            if (rangeIndicator != null)
+            {
+                rangeIndicator.Hide();
+            }
+        }
+
+        private void ValidateSelectedTowerRange()
+        {
+            if (selectedTower != null && selectedTower.AttackRange <= 0f)
+            {
+                Debug.LogWarning($"Tower '{selectedTower.TowerName}' has attackRange <= 0. Range indicator will be hidden.");
+            }
         }
 
         public bool CanPlaceAtCell(Vector3Int cell)
@@ -579,6 +658,7 @@ namespace TD.Placement
         }
 
         private static Sprite generatedOverlaySprite;
+        private static Sprite generatedCircleSprite;
 
         private static Sprite GetGeneratedOverlaySprite()
         {
@@ -601,6 +681,42 @@ namespace TD.Placement
                 1f);
 
             return generatedOverlaySprite;
+        }
+
+        private static Sprite GetGeneratedCircleSprite()
+        {
+            if (generatedCircleSprite != null)
+            {
+                return generatedCircleSprite;
+            }
+
+            const int size = 128;
+            const float radius = size * 0.5f - 1f;
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            Texture2D texture = new Texture2D(size, size)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
+                    float alpha = distance <= radius ? 1f : 0f;
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+
+            texture.Apply();
+            generatedCircleSprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f),
+                size);
+
+            return generatedCircleSprite;
         }
     }
 }
