@@ -1,4 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
+using TD.Economy;
+using TD.Gameplay;
 using TD.Map;
 using UnityEngine;
 using UnityEngine.Events;
@@ -24,17 +27,42 @@ namespace TD.Enemy
         [SerializeField] private EnemyData[] enemyDataList;
         [SerializeField] private EnemyWaveEntry[] waveEntries;
         [SerializeField] private bool spawnOnStart = true;
+        [SerializeField] private int waveClearReward = 25;
+        [SerializeField] private GoldManager goldManager;
+
+        [Header("Life / Game Over")]
+        [SerializeField] private LifeManager lifeManager;
+        [SerializeField] private bool stopSpawningOnGameOver = true;
+        [SerializeField] private bool removeAliveEnemiesOnGameOver;
+
         [SerializeField] private UnityEvent<EnemyController> enemySpawned;
         [SerializeField] private UnityEvent<EnemyController, int> enemyKilled;
         [SerializeField] private UnityEvent<EnemyController, int> enemyReachedBase;
+        [SerializeField] private UnityEvent<int> waveCleared;
         [SerializeField] private UnityEvent<EnemyController> bossSpawned;
         [SerializeField] private UnityEvent<EnemyController> bossDead;
 
+        private readonly HashSet<EnemyController> aliveEnemies = new HashSet<EnemyController>();
+        private bool isSpawningWave;
+        private bool waveRewardGranted = true;
+        private bool spawningEnabled = true;
+        private bool isGameOver;
+
+        private void OnEnable()
+        {
+            SubscribeLifeManager();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeLifeManager();
+        }
+
         private void Start()
         {
-            if (spawnOnStart)
+            if (spawnOnStart && spawningEnabled)
             {
-                SpawnEnemy();
+                SpawnWaveEntry(0);
             }
         }
 
@@ -45,7 +73,7 @@ namespace TD.Enemy
 
         public EnemyController SpawnEnemy(EnemyData data)
         {
-            if (data == null || data.Prefab == null || mapRoot == null || mapRoot.WaypointPath == null)
+            if (!spawningEnabled || isGameOver || data == null || data.Prefab == null || mapRoot == null || mapRoot.WaypointPath == null)
             {
                 return null;
             }
@@ -62,6 +90,7 @@ namespace TD.Enemy
             }
 
             WireEnemyEvents(enemy);
+            aliveEnemies.Add(enemy);
             enemy.Initialize(data, mapRoot.WaypointPath);
             enemySpawned?.Invoke(enemy);
             return enemy;
@@ -79,11 +108,12 @@ namespace TD.Enemy
 
         public void SpawnWaveEntry(int index)
         {
-            if (waveEntries == null || index < 0 || index >= waveEntries.Length)
+            if (!spawningEnabled || isGameOver || waveEntries == null || index < 0 || index >= waveEntries.Length)
             {
                 return;
             }
 
+            waveRewardGranted = false;
             StartCoroutine(SpawnWaveEntryRoutine(waveEntries[index]));
         }
 
@@ -94,8 +124,15 @@ namespace TD.Enemy
                 yield break;
             }
 
+            isSpawningWave = true;
+
             for (int i = 0; i < entry.Count; i++)
             {
+                if (!spawningEnabled || isGameOver)
+                {
+                    break;
+                }
+
                 SpawnEnemy(entry.EnemyData);
 
                 if (entry.SpawnInterval > 0f && i + 1 < entry.Count)
@@ -103,6 +140,9 @@ namespace TD.Enemy
                     yield return new WaitForSeconds(entry.SpawnInterval);
                 }
             }
+
+            isSpawningWave = false;
+            TryCompleteWave();
         }
 
         private void WireEnemyEvents(EnemyController enemy)
@@ -126,12 +166,24 @@ namespace TD.Enemy
             }
 
             enemyKilled?.Invoke(enemy, enemy.RewardGold);
+            if (goldManager != null)
+            {
+                goldManager.AddGold(enemy.RewardGold);
+            }
+
             Debug.Log($"Enemy killed: {enemy.Data?.EnemyName ?? enemy.name}, reward {enemy.RewardGold} gold");
+            MarkEnemyRemoved(enemy);
         }
 
         private void HandleEnemyReachedBase(EnemyController enemy, int damage)
         {
             enemyReachedBase?.Invoke(enemy, damage);
+            if (lifeManager != null)
+            {
+                lifeManager.TakeDamage(damage);
+            }
+
+            MarkEnemyRemoved(enemy);
         }
 
         private void HandleBossSpawned(EnemyController enemy)
@@ -142,6 +194,116 @@ namespace TD.Enemy
         private void HandleBossDead(EnemyController enemy)
         {
             bossDead?.Invoke(enemy);
+        }
+
+        private void MarkEnemyRemoved(EnemyController enemy)
+        {
+            if (enemy != null)
+            {
+                enemy.EnemyKilled -= HandleEnemyKilled;
+                enemy.BaseReached -= HandleEnemyReachedBase;
+                enemy.BossSpawned -= HandleBossSpawned;
+                enemy.BossDead -= HandleBossDead;
+                aliveEnemies.Remove(enemy);
+            }
+
+            TryCompleteWave();
+        }
+
+        private void TryCompleteWave()
+        {
+            if (isGameOver || isSpawningWave || waveRewardGranted || aliveEnemies.Count > 0)
+            {
+                return;
+            }
+
+            waveRewardGranted = true;
+            if (goldManager != null)
+            {
+                goldManager.AddGold(waveClearReward);
+            }
+
+            waveCleared?.Invoke(waveClearReward);
+        }
+
+        public void SetLifeManager(LifeManager manager)
+        {
+            UnsubscribeLifeManager();
+            lifeManager = manager;
+            SubscribeLifeManager();
+        }
+
+        public void StopSpawning(bool removeAliveEnemies)
+        {
+            spawningEnabled = false;
+            isSpawningWave = false;
+            StopAllCoroutines();
+
+            if (removeAliveEnemies)
+            {
+                RemoveAliveEnemies();
+                return;
+            }
+
+            StopAliveEnemies();
+        }
+
+        public void HandleGameOver()
+        {
+            isGameOver = true;
+
+            if (stopSpawningOnGameOver)
+            {
+                StopSpawning(removeAliveEnemiesOnGameOver);
+            }
+        }
+
+        private void SubscribeLifeManager()
+        {
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+                lifeManager.OnGameOver.AddListener(HandleGameOver);
+            }
+        }
+
+        private void UnsubscribeLifeManager()
+        {
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+            }
+        }
+
+        private void StopAliveEnemies()
+        {
+            foreach (EnemyController enemy in aliveEnemies)
+            {
+                if (enemy != null && enemy.PathFollower != null)
+                {
+                    enemy.PathFollower.StopFollowing();
+                }
+            }
+        }
+
+        private void RemoveAliveEnemies()
+        {
+            List<EnemyController> enemies = new List<EnemyController>(aliveEnemies);
+            aliveEnemies.Clear();
+
+            foreach (EnemyController enemy in enemies)
+            {
+                if (enemy == null)
+                {
+                    continue;
+                }
+
+                enemy.EnemyKilled -= HandleEnemyKilled;
+                enemy.BaseReached -= HandleEnemyReachedBase;
+                enemy.BossSpawned -= HandleBossSpawned;
+                enemy.BossDead -= HandleBossDead;
+                Destroy(enemy.gameObject);
+            }
         }
     }
 }

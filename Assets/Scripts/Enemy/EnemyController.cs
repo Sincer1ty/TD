@@ -8,8 +8,8 @@ namespace TD.Enemy
     public class EnemyController : MonoBehaviour
     {
         [SerializeField] private EnemyData data;
-        [SerializeField] private EnemyHealth health;
-        [SerializeField] private EnemyPathFollower pathFollower;
+        private EnemyHealth health;
+        private EnemyPathFollower pathFollower;
         [SerializeField] private EnemyAbilityBase[] abilities;
         [SerializeField] private bool destroyOnDeath = true;
         [SerializeField] private bool destroyOnGoalReached = true;
@@ -38,7 +38,9 @@ namespace TD.Enemy
 
         private void Awake()
         {
-            CacheComponents();
+            health = GetComponent<EnemyHealth>();
+            pathFollower = GetComponent<EnemyPathFollower>();
+            abilities = GetComponents<EnemyAbilityBase>();
         }
 
         private void OnEnable()
@@ -53,7 +55,6 @@ namespace TD.Enemy
 
         public void Initialize(EnemyData enemyData, WaypointPath waypointPath)
         {
-            CacheComponents();
             data = enemyData;
             completed = false;
 
@@ -80,31 +81,6 @@ namespace TD.Enemy
             }
         }
 
-        private void CacheComponents()
-        {
-            if (health == null)
-            {
-                health = GetComponent<EnemyHealth>();
-            }
-
-            if (health == null)
-            {
-                health = gameObject.AddComponent<EnemyHealth>();
-            }
-
-            if (pathFollower == null)
-            {
-                pathFollower = GetComponent<EnemyPathFollower>();
-            }
-
-            if (pathFollower == null)
-            {
-                pathFollower = gameObject.AddComponent<EnemyPathFollower>();
-            }
-
-            abilities = GetComponents<EnemyAbilityBase>();
-        }
-
         private void InitializeAbilities()
         {
             if (abilities == null)
@@ -123,8 +99,6 @@ namespace TD.Enemy
 
         private void Subscribe()
         {
-            CacheComponents();
-
             if (health != null)
             {
                 health.Death -= HandleDeath;

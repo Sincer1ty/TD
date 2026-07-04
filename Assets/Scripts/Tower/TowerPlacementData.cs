@@ -15,6 +15,7 @@ namespace TD.Tower
         public string TowerName => towerData != null ? towerData.TowerName : towerName;
         public Tower TowerPrefab => towerData != null ? towerData.Prefab : towerPrefab;
         public int Cost => towerData != null ? towerData.Cost : cost;
+        public int UpgradeCost => towerData != null ? towerData.UpgradeCost : 0;
         public Sprite Icon => towerData != null ? towerData.Icon : icon;
     }
 }

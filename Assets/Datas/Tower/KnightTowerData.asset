@@ -20,6 +20,7 @@ MonoBehaviour:
   attackMode: 3
   targetPriority: 3
   cost: 90
+  upgradeCost: 75
   prefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
   projectilePrefab: {fileID: 0}
   icon: {fileID: 0}

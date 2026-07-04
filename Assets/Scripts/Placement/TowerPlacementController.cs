@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TD.Gameplay;
 using TD.Tower;
 using UnityEngine;
 using UnityEngine.Events;
@@ -17,6 +18,9 @@ namespace TD.Placement
         [Header("Input")]
         [SerializeField] private Camera worldCamera;
         [SerializeField] private bool allowPlacementInput = true;
+
+        [Header("Game Over")]
+        [SerializeField] private LifeManager lifeManager;
 
         [Header("Tilemaps")]
         [SerializeField] private Grid placementGrid;
@@ -59,10 +63,21 @@ namespace TD.Placement
         private ITowerCostProvider costProvider;
 
         public TowerData SelectedTower => selectedTower;
+        public bool AllowPlacementInput => allowPlacementInput;
         public bool HasHoveredCell => hasHoveredCell;
         public Vector3Int HoveredCell => hoveredCell;
         public int InstalledTowerCount => placedTowers.Count;
         public IReadOnlyDictionary<Vector3Int, TowerBehaviour> PlacedTowers => placedTowers;
+
+        private void OnEnable()
+        {
+            SubscribeLifeManager();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeLifeManager();
+        }
 
         private void Awake()
         {
@@ -115,6 +130,11 @@ namespace TD.Placement
 
         public void SelectTower(TowerData towerData)
         {
+            if (!allowPlacementInput)
+            {
+                return;
+            }
+
             selectedTower = towerData;
             towerSelected?.Invoke(selectedTower);
 
@@ -143,6 +163,28 @@ namespace TD.Placement
         public void ClearSelection()
         {
             DeselectTower();
+        }
+
+        public void SetPlacementInputEnabled(bool enabled)
+        {
+            allowPlacementInput = enabled;
+
+            if (!allowPlacementInput)
+            {
+                DeselectTower();
+            }
+        }
+
+        public void HandleGameOver()
+        {
+            SetPlacementInputEnabled(false);
+        }
+
+        public void SetLifeManager(LifeManager manager)
+        {
+            UnsubscribeLifeManager();
+            lifeManager = manager;
+            SubscribeLifeManager();
         }
 
         public void DeselectTower()
@@ -517,6 +559,23 @@ namespace TD.Placement
         private void CacheCostProvider()
         {
             costProvider = costProviderBehaviour as ITowerCostProvider;
+        }
+
+        private void SubscribeLifeManager()
+        {
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+                lifeManager.OnGameOver.AddListener(HandleGameOver);
+            }
+        }
+
+        private void UnsubscribeLifeManager()
+        {
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+            }
         }
 
         private static Sprite generatedOverlaySprite;

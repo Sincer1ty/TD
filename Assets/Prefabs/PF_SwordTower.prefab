@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 9050796131171625272}
   - component: {fileID: 4343967645554337613}
   m_Layer: 0
-  m_Name: PF_Tower
+  m_Name: PF_SwordTower
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -104,4 +104,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 78041f6e50504e738e2cd1ed2d2fe6ee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TD.Tower.Tower
-  placementData: {fileID: 0}
+  data: {fileID: 0}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 51
+  firePoint: {fileID: 0}
+  attackEnabled: 1

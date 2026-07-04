@@ -13,6 +13,7 @@ namespace TD.Tower
         [SerializeField] private AttackMode attackMode = AttackMode.Melee;
         [SerializeField] private TargetPriority targetPriority = TargetPriority.Nearest;
         [SerializeField] private int cost = 100;
+        [SerializeField] private int upgradeCost = 75;
         [SerializeField] private Tower prefab;
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private Sprite icon;
@@ -33,6 +34,7 @@ namespace TD.Tower
         public AttackMode AttackMode => attackMode;
         public TargetPriority TargetPriority => targetPriority;
         public int Cost => Mathf.Max(0, cost);
+        public int UpgradeCost => Mathf.Max(0, upgradeCost);
         public Tower Prefab => prefab;
         public GameObject ProjectilePrefab => projectilePrefab;
         public Sprite Icon => icon;
@@ -47,6 +49,7 @@ namespace TD.Tower
             attackSpeed = Mathf.Max(0f, attackSpeed);
             attackRange = Mathf.Max(0f, attackRange);
             cost = Mathf.Max(0, cost);
+            upgradeCost = Mathf.Max(0, upgradeCost);
             areaRadius = Mathf.Max(0f, areaRadius);
             slowPercent = Mathf.Clamp01(slowPercent);
             slowDuration = Mathf.Max(0f, slowDuration);

@@ -9,10 +9,12 @@ namespace TD.Tower
         [SerializeField] private LayerMask enemyLayer = Physics2D.DefaultRaycastLayers;
         [SerializeField] private Transform firePoint;
         [SerializeField] private bool attackEnabled = true;
+        [SerializeField] private int upgradeLevel;
 
         private float attackTimer;
 
         public TowerData Data => data;
+        public int UpgradeLevel => upgradeLevel;
 
         private void Reset()
         {
@@ -48,6 +50,38 @@ namespace TD.Tower
             attackTimer = 0f;
         }
 
+        public bool CanUpgrade(ITowerCostProvider costProvider)
+        {
+            if (data == null)
+            {
+                return false;
+            }
+
+            return costProvider == null || costProvider.CanAfford(data.UpgradeCost);
+        }
+
+        public bool Upgrade(ITowerCostProvider costProvider)
+        {
+            if (data == null)
+            {
+                return false;
+            }
+
+            int cost = data.UpgradeCost;
+            if (costProvider != null && !costProvider.CanAfford(cost))
+            {
+                return false;
+            }
+
+            if (costProvider != null && !costProvider.SpendCost(cost))
+            {
+                return false;
+            }
+
+            upgradeLevel++;
+            return true;
+        }
+
         public void SetAttackEnabled(bool enabled)
         {
             attackEnabled = enabled;
@@ -73,7 +107,7 @@ namespace TD.Tower
                 {
                     continue;
                 }
-
+                
                 EnemyHealth candidate = hit.GetComponentInParent<EnemyHealth>();
                 if (candidate == null || candidate.IsDead)
                 {

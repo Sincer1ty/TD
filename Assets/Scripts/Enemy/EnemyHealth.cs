@@ -49,6 +49,7 @@ namespace TD.Enemy
             }
 
             currentHp = Mathf.Max(0f, currentHp - damage);
+            Debug.Log("currentHp: " + currentHp + "");
             NotifyHealthChanged();
 
             if (currentHp <= 0f)
