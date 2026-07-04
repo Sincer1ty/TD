@@ -51,6 +51,7 @@ namespace TD.Placement
 
         [Header("Events")]
         [SerializeField] private UnityEvent<TowerData> towerSelected;
+        [SerializeField] private UnityEvent<bool> placementModeChanged;
         [SerializeField] private UnityEvent<TowerBehaviour, Vector3Int> towerPlaced;
         [SerializeField] private UnityEvent<Vector3Int> placementFailed;
         [SerializeField] private UnityEvent<TowerData> insufficientCost;
@@ -68,6 +69,7 @@ namespace TD.Placement
         private ITowerCostProvider costProvider;
 
         public TowerData SelectedTower => selectedTower;
+        public bool IsPlacementModeActive => selectedTower != null;
         public bool AllowPlacementInput => allowPlacementInput;
         public bool HasHoveredCell => hasHoveredCell;
         public Vector3Int HoveredCell => hoveredCell;
@@ -124,6 +126,12 @@ namespace TD.Placement
                 return;
             }
 
+            if (IsCancelPressed())
+            {
+                CancelPlacement();
+                return;
+            }
+
             UpdateHoveredCell();
             UpdatePreview();
             UpdateRangeIndicator();
@@ -143,6 +151,7 @@ namespace TD.Placement
 
             selectedTower = towerData;
             towerSelected?.Invoke(selectedTower);
+            placementModeChanged?.Invoke(IsPlacementModeActive);
 
             if (selectedTower == null)
             {
@@ -174,6 +183,16 @@ namespace TD.Placement
             DeselectTower();
         }
 
+        public void CancelPlacement()
+        {
+            if (selectedTower == null)
+            {
+                return;
+            }
+
+            DeselectTower();
+        }
+
         public void SetPlacementInputEnabled(bool enabled)
         {
             allowPlacementInput = enabled;
@@ -198,8 +217,14 @@ namespace TD.Placement
 
         public void DeselectTower()
         {
+            if (selectedTower == null)
+            {
+                return;
+            }
+
             selectedTower = null;
             towerSelected?.Invoke(null);
+            placementModeChanged?.Invoke(false);
             ClearSelectionVisuals();
         }
 
@@ -296,6 +321,11 @@ namespace TD.Placement
             }
 
             return false;
+        }
+
+        private static bool IsCancelPressed()
+        {
+            return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         }
 
         private void RefreshHoveredCellOverlay()

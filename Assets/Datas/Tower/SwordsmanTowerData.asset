@@ -19,7 +19,7 @@ MonoBehaviour:
   attackRange: 1.3
   attackMode: 0
   targetPriority: 1
-  cost: 50
+  cost: 10
   upgradeCost: 40
   prefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
   projectilePrefab: {fileID: 0}
