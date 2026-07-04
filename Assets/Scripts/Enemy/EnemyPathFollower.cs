@@ -7,11 +7,11 @@ namespace TD.Enemy
 {
     public class EnemyPathFollower : MonoBehaviour
     {
-        [SerializeField] private WaypointPath path; // spawner 가 지정해줌
+        private WaypointPath path;
+        
         [SerializeField] private float moveSpeed = 2f;
         [SerializeField] private float arriveDistance = 0.05f;
         [SerializeField] private bool startOnAwake = true;
-        [SerializeField] private bool destroyOnGoalReached = true; // 변수 지정 필요한지..?
         [SerializeField] private UnityEvent<EnemyPathFollower> onGoalReached;
 
         private int currentWaypointIndex;
@@ -61,10 +61,9 @@ namespace TD.Enemy
             }
         }
 
-        public void Initialize(WaypointPath newPath, float speed, bool snapToStart = true)
+        public void Initialize(WaypointPath newPath, bool snapToStart = true)
         {
             SetPath(newPath, snapToStart);
-            MoveSpeed = speed;
             StartFollowing();
         }
 
@@ -119,10 +118,7 @@ namespace TD.Enemy
             GoalReached?.Invoke(this);
             onGoalReached?.Invoke(this);
 
-            if (destroyOnGoalReached)
-            {
-                Destroy(gameObject);
-            }
+            Destroy(gameObject); // 죽었다는 표시?
         }
     }
 }

@@ -9,7 +9,7 @@ namespace TD.Map
         [SerializeField] private LayerMask blockedLayerMask;
         [SerializeField] private bool requireInsidePlacementArea = true;
         [SerializeField] private bool drawGizmos = true;
-        [SerializeField] private Color gizmoColor = new(0.2f, 1f, 0.35f, 0.25f);
+        [SerializeField] private Color gizmoColor = new Color(0.2f, 1f, 0.35f, 0.25f);
 
         private void Reset()
         {

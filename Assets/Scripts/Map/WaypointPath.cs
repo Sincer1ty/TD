@@ -5,10 +5,10 @@ namespace TD.Map
 {
     public class WaypointPath : MonoBehaviour
     {
-        [SerializeField] private List<Transform> waypoints = new();
+        [SerializeField] private List<Transform> waypoints = new List<Transform>();
         [SerializeField] private bool useChildrenAsWaypoints = true;
         [SerializeField] private bool drawGizmos = true;
-        [SerializeField] private Color gizmoColor = new(0.2f, 0.8f, 1f, 1f);
+        [SerializeField] private Color gizmoColor = new Color(0.2f, 0.8f, 1f, 1f);
 
         public IReadOnlyList<Transform> Waypoints => waypoints;
         public int Count => waypoints.Count > 0 ? waypoints.Count : transform.childCount;
@@ -51,7 +51,7 @@ namespace TD.Map
 
         public Vector3[] GetPositions()
         {
-            List<Vector3> positions = new();
+            List<Vector3> positions = new List<Vector3>();
 
             foreach (Transform waypoint in waypoints)
             {
@@ -74,7 +74,7 @@ namespace TD.Map
             IReadOnlyList<Transform> points = waypoints;
             if (useChildrenAsWaypoints && waypoints.Count == 0)
             {
-                List<Transform> childPoints = new();
+                List<Transform> childPoints = new List<Transform>();
                 for (int i = 0; i < transform.childCount; i++)
                 {
                     childPoints.Add(transform.GetChild(i));

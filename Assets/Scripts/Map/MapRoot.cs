@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace TD.Map
 {
@@ -9,6 +10,15 @@ namespace TD.Map
         [SerializeField] private Transform pathRoot;
         [SerializeField] private Transform decorationsRoot;
 
+        [Header("Tilemap Layers")]
+        [SerializeField] private Grid grid;
+        [SerializeField] private Tilemap backgroundTilemap;
+        [SerializeField] private Tilemap pathTilemap;
+        [SerializeField] private Tilemap buildableTilemap;
+        [SerializeField] private Tilemap decorationTilemap;
+        [SerializeField] private Tilemap placementOverlayTilemap;
+        [SerializeField] private Transform towersRoot;
+
         [Header("Gameplay References")]
         [SerializeField] private WaypointPath waypointPath;
         [SerializeField] private Transform spawnPoint;
@@ -18,6 +28,13 @@ namespace TD.Map
         public Transform BackgroundRoot => backgroundRoot;
         public Transform PathRoot => pathRoot;
         public Transform DecorationsRoot => decorationsRoot;
+        public Grid Grid => grid;
+        public Tilemap BackgroundTilemap => backgroundTilemap;
+        public Tilemap PathTilemap => pathTilemap;
+        public Tilemap BuildableTilemap => buildableTilemap;
+        public Tilemap DecorationTilemap => decorationTilemap;
+        public Tilemap PlacementOverlayTilemap => placementOverlayTilemap;
+        public Transform TowersRoot => towersRoot;
         public WaypointPath WaypointPath => waypointPath;
         public Transform SpawnPoint => spawnPoint;
         public Transform GoalPoint => goalPoint;
@@ -39,6 +56,11 @@ namespace TD.Map
             {
                 towerPlacementArea = GetComponentInChildren<TowerPlacementArea>();
             }
+
+            if (grid == null)
+            {
+                grid = GetComponentInChildren<Grid>();
+            }
         }
 
         [ContextMenu("Find References In Children")]
@@ -47,6 +69,13 @@ namespace TD.Map
             backgroundRoot = FindDirectChild("Background");
             pathRoot = FindDirectChild("Path");
             decorationsRoot = FindDirectChild("Decorations");
+            grid = GetComponentInChildren<Grid>();
+            backgroundTilemap = FindTilemap("Background Tilemap");
+            pathTilemap = FindTilemap("Path Tilemap");
+            buildableTilemap = FindTilemap("Buildable Tilemap");
+            decorationTilemap = FindTilemap("Decoration Tilemap");
+            placementOverlayTilemap = FindTilemap("Placement Overlay Tilemap");
+            towersRoot = FindDirectChild("Towers");
             waypointPath = GetComponentInChildren<WaypointPath>();
             towerPlacementArea = GetComponentInChildren<TowerPlacementArea>();
 
@@ -101,6 +130,13 @@ namespace TD.Map
         {
             Transform child = transform.Find(childName);
             return child != null ? child : null;
+        }
+
+        private Tilemap FindTilemap(string childName)
+        {
+            Transform gridTransform = grid != null ? grid.transform : transform.Find("Grid");
+            Transform tilemapTransform = gridTransform != null ? gridTransform.Find(childName) : null;
+            return tilemapTransform != null ? tilemapTransform.GetComponent<Tilemap>() : null;
         }
     }
 }

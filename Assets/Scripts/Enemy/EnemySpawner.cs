@@ -25,11 +25,13 @@ namespace TD.Enemy
                 return null;
             }
 
-            Vector3 spawnPosition = transform.position;
-            mapRoot.TryGetSpawnPosition(out spawnPosition);
+            Vector3 spawnPosition = mapRoot.TryGetSpawnPosition(out Vector3 mapSpawnPosition)
+                ? mapSpawnPosition
+                : transform.position;
 
             EnemyPathFollower enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
-            enemy.Initialize(mapRoot.WaypointPath, enemyMoveSpeed, false);
+            enemy.MoveSpeed = enemyMoveSpeed;
+            enemy.Initialize(mapRoot.WaypointPath, false);
             return enemy;
         }
     }
