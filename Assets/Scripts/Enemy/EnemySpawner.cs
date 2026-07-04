@@ -71,6 +71,21 @@ namespace TD.Enemy
             return SpawnEnemy(defaultEnemyData);
         }
 
+        public void SetSpawnOnStart(bool enabled)
+        {
+            spawnOnStart = enabled;
+        }
+
+        public void SetSpawningEnabled(bool enabled)
+        {
+            spawningEnabled = enabled;
+
+            if (!spawningEnabled)
+            {
+                StopSpawning(removeAliveEnemiesOnGameOver);
+            }
+        }
+
         public EnemyController SpawnEnemy(EnemyData data)
         {
             if (!spawningEnabled || isGameOver || data == null || data.Prefab == null || mapRoot == null || mapRoot.WaypointPath == null)

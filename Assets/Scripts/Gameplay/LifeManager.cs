@@ -51,7 +51,7 @@ namespace TD.Gameplay
             }
 
             currentLife = Mathf.Max(0, currentLife - amount);
-            Debug.Log($"Base took {amount} damage. Life: {currentLife}");
+            // Debug.Log($"Base took {amount} damage. Life: {currentLife}");
             onLifeChanged?.Invoke(currentLife);
 
             if (currentLife <= 0)

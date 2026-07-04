@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c469f631ca85af149ab015506972698a, type: 3}
+  m_Name: Wave_03
+  m_EditorClassIdentifier: 
+  waveIndex: 3
+  enemyGroups:
+  - enemyData: {fileID: 11400000, guid: a1e0fcefa93749359574f3b8bde4f597, type: 2}
+    count: 15
+    spawnIntervalOverride: -1
+    delayBeforeGroup: 0
+  - enemyData: {fileID: 11400000, guid: a0cc90e1bed94c72824773979a95cac8, type: 2}
+    count: 5
+    spawnIntervalOverride: 0.5
+    delayBeforeGroup: 1
+  spawnInterval: 0.7
+  waveClearReward: 30
+  healthMultiplier: 1.1
