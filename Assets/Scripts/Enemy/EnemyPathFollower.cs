@@ -12,18 +12,32 @@ namespace TD.Enemy
         [SerializeField] private float moveSpeed = 2f;
         [SerializeField] private float arriveDistance = 0.05f;
         [SerializeField] private bool startOnAwake = true;
+        [SerializeField] private int damageToBase = 1;
+        [SerializeField] private bool destroyOnGoalReached = true;
         [SerializeField] private UnityEvent<EnemyPathFollower> onGoalReached;
+        [SerializeField] private UnityEvent<EnemyPathFollower, int> onBaseReached;
 
         private int currentWaypointIndex;
         private bool isFollowing;
+        private float slowMultiplier = 1f;
+        private Coroutine slowRoutine;
 
         public event Action<EnemyPathFollower> GoalReached;
+        public event Action<EnemyPathFollower, int> BaseReached;
 
         public WaypointPath Path => path;
+        public int DamageToBase => damageToBase;
+        public int CurrentWaypointIndex => currentWaypointIndex;
+        public float CurrentMoveSpeed => moveSpeed * slowMultiplier;
         public float MoveSpeed
         {
             get => moveSpeed;
             set => moveSpeed = Mathf.Max(0f, value);
+        }
+
+        private void OnDisable()
+        {
+            ClearSlow();
         }
 
         private void Awake()
@@ -67,6 +81,13 @@ namespace TD.Enemy
             StartFollowing();
         }
 
+        public void Initialize(WaypointPath newPath, float speed, int baseDamage, bool snapToStart = true)
+        {
+            MoveSpeed = speed;
+            damageToBase = Mathf.Max(0, baseDamage);
+            Initialize(newPath, snapToStart);
+        }
+
         public void StartFollowing()
         {
             if (path == null || path.Count == 0)
@@ -90,7 +111,7 @@ namespace TD.Enemy
             Vector3 nextPosition = Vector3.MoveTowards(
                 currentPosition,
                 targetPosition,
-                moveSpeed * Time.deltaTime);
+                CurrentMoveSpeed * Time.deltaTime);
 
             transform.position = nextPosition;
 
@@ -117,8 +138,52 @@ namespace TD.Enemy
             isFollowing = false;
             GoalReached?.Invoke(this);
             onGoalReached?.Invoke(this);
+            BaseReached?.Invoke(this, damageToBase);
+            onBaseReached?.Invoke(this, damageToBase);
 
-            Destroy(gameObject); // 죽었다는 표시?
+            if (destroyOnGoalReached)
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        public void ApplySlow(float slowPercent, float duration)
+        {
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                return;
+            }
+
+            slowPercent = Mathf.Clamp01(slowPercent);
+            if (slowPercent <= 0f)
+            {
+                return;
+            }
+
+            if (slowRoutine != null)
+            {
+                StopCoroutine(slowRoutine);
+            }
+
+            slowRoutine = StartCoroutine(SlowRoutine(1f - slowPercent, duration));
+        }
+
+        private System.Collections.IEnumerator SlowRoutine(float multiplier, float duration)
+        {
+            slowMultiplier = Mathf.Clamp(multiplier, 0.05f, 1f);
+            yield return new WaitForSeconds(duration);
+            ClearSlow();
+        }
+
+        private void ClearSlow()
+        {
+            if (slowRoutine != null)
+            {
+                StopCoroutine(slowRoutine);
+                slowRoutine = null;
+            }
+
+            slowMultiplier = 1f;
         }
     }
 }

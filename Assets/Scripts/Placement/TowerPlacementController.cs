@@ -11,8 +11,8 @@ namespace TD.Placement
     public class TowerPlacementController : MonoBehaviour
     {
         [Header("Tower Selection")]
-        [SerializeField] private TowerPlacementData[] towerOptions;
-        [SerializeField] private TowerPlacementData selectedTower;
+        [SerializeField] private TowerData[] towerOptions;
+        [SerializeField] private TowerData selectedTower;
 
         [Header("Input")]
         [SerializeField] private Camera worldCamera;
@@ -23,6 +23,10 @@ namespace TD.Placement
         [SerializeField] private Tilemap buildableTilemap;
         [SerializeField] private Tilemap placementOverlayTilemap;
         [SerializeField] private Transform towersRoot;
+
+        [Header("Cost")]
+        [SerializeField] private MonoBehaviour costProviderBehaviour;
+        [SerializeField] private bool allowPlacementWithoutCostProvider = true;
 
         [Header("Preview")]
         [SerializeField] private bool showTowerPreview = true;
@@ -37,9 +41,10 @@ namespace TD.Placement
         [SerializeField] private Color blockedHoverColor = new Color(1f, 0.2f, 0.2f, 0.55f);
 
         [Header("Events")]
-        [SerializeField] private UnityEvent<TowerPlacementData> towerSelected;
+        [SerializeField] private UnityEvent<TowerData> towerSelected;
         [SerializeField] private UnityEvent<TowerBehaviour, Vector3Int> towerPlaced;
         [SerializeField] private UnityEvent<Vector3Int> placementFailed;
+        [SerializeField] private UnityEvent<TowerData> insufficientCost;
 
         [Header("Debug")]
         [SerializeField] private int installedTowerCount;
@@ -48,11 +53,12 @@ namespace TD.Placement
         private Vector3Int hoveredCell;
         private bool hasHoveredCell;
         private TowerBehaviour previewTower;
-        private TowerPlacementData previewData;
+        private TowerData previewData;
         private SpriteRenderer[] previewRenderers;
         private Collider2D[] previewColliders;
+        private ITowerCostProvider costProvider;
 
-        public TowerPlacementData SelectedTower => selectedTower;
+        public TowerData SelectedTower => selectedTower;
         public bool HasHoveredCell => hasHoveredCell;
         public Vector3Int HoveredCell => hoveredCell;
         public int InstalledTowerCount => placedTowers.Count;
@@ -70,6 +76,7 @@ namespace TD.Placement
                 placementGrid = buildableTilemap.layoutGrid;
             }
 
+            CacheCostProvider();
             EnsureOverlayTiles();
         }
 
@@ -106,7 +113,7 @@ namespace TD.Placement
             }
         }
 
-        public void SelectTower(TowerPlacementData towerData)
+        public void SelectTower(TowerData towerData)
         {
             selectedTower = towerData;
             towerSelected?.Invoke(selectedTower);
@@ -117,11 +124,16 @@ namespace TD.Placement
             }
         }
 
+        public void SelectTower(TowerPlacementData placementData)
+        {
+            SelectTower(placementData != null ? placementData.TowerData : null);
+        }
+
         public void SelectTowerByIndex(int index)
         {
             if (towerOptions == null || index < 0 || index >= towerOptions.Length)
             {
-                SelectTower(null);
+                SelectTower((TowerData)null);
                 return;
             }
 
@@ -148,15 +160,29 @@ namespace TD.Placement
                 return false;
             }
 
-            if (!CanPlaceAtCell(hoveredCell) || selectedTower.TowerPrefab == null)
+            if (!CanPlaceAtCell(hoveredCell) || selectedTower.Prefab == null)
             {
+                placementFailed?.Invoke(hoveredCell);
+                return false;
+            }
+
+            if (!CanAfford(selectedTower))
+            {
+                insufficientCost?.Invoke(selectedTower);
+                placementFailed?.Invoke(hoveredCell);
+                return false;
+            }
+
+            if (!SpendCost(selectedTower))
+            {
+                insufficientCost?.Invoke(selectedTower);
                 placementFailed?.Invoke(hoveredCell);
                 return false;
             }
 
             Vector3 towerPosition = GetCellCenterWorld(hoveredCell);
             TowerBehaviour tower = Instantiate(
-                selectedTower.TowerPrefab,
+                selectedTower.Prefab,
                 towerPosition,
                 Quaternion.identity,
                 towersRoot);
@@ -253,7 +279,7 @@ namespace TD.Placement
 
         private void UpdatePreview()
         {
-            if (!showTowerPreview || selectedTower == null || selectedTower.TowerPrefab == null)
+            if (!showTowerPreview || selectedTower == null || selectedTower.Prefab == null)
             {
                 SetPreviewVisible(false);
                 return;
@@ -288,12 +314,12 @@ namespace TD.Placement
             DestroyPreview();
             previewData = selectedTower;
 
-            if (previewData == null || previewData.TowerPrefab == null)
+            if (previewData == null || previewData.Prefab == null)
             {
                 return;
             }
 
-            previewTower = Instantiate(previewData.TowerPrefab);
+            previewTower = Instantiate(previewData.Prefab);
             previewTower.name = $"{previewData.TowerName}_Preview";
             previewRenderers = previewTower.GetComponentsInChildren<SpriteRenderer>();
             previewColliders = previewTower.GetComponentsInChildren<Collider2D>();
@@ -350,7 +376,7 @@ namespace TD.Placement
 
         public bool CanPlaceAtCell(Vector3Int cell)
         {
-            if (selectedTower == null || selectedTower.TowerPrefab == null)
+            if (selectedTower == null || selectedTower.Prefab == null)
             {
                 return false;
             }
@@ -361,6 +387,53 @@ namespace TD.Placement
             }
 
             return !placedTowers.ContainsKey(cell);
+        }
+
+        public bool CanAffordSelectedTower()
+        {
+            return CanAfford(selectedTower);
+        }
+
+        public bool CanAfford(TowerData towerData)
+        {
+            if (towerData == null)
+            {
+                return false;
+            }
+
+            if (towerData.Cost <= 0)
+            {
+                return true;
+            }
+
+            ITowerCostProvider provider = GetCostProvider();
+            if (provider == null)
+            {
+                return allowPlacementWithoutCostProvider;
+            }
+
+            return provider.CanAfford(towerData.Cost);
+        }
+
+        public bool SpendCost(TowerData towerData)
+        {
+            if (towerData == null)
+            {
+                return false;
+            }
+
+            if (towerData.Cost <= 0)
+            {
+                return true;
+            }
+
+            ITowerCostProvider provider = GetCostProvider();
+            if (provider == null)
+            {
+                return allowPlacementWithoutCostProvider;
+            }
+
+            return provider.SpendCost(towerData.Cost);
         }
 
         public bool TryGetPlacedTower(Vector3Int cell, out TowerBehaviour tower)
@@ -429,6 +502,21 @@ namespace TD.Placement
         private void RefreshInstalledTowerCount()
         {
             installedTowerCount = placedTowers.Count;
+        }
+
+        private ITowerCostProvider GetCostProvider()
+        {
+            if (costProvider == null)
+            {
+                CacheCostProvider();
+            }
+
+            return costProvider;
+        }
+
+        private void CacheCostProvider()
+        {
+            costProvider = costProviderBehaviour as ITowerCostProvider;
         }
 
         private static Sprite generatedOverlaySprite;

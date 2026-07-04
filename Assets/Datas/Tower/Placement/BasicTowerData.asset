@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d64092bed0c1463cad89297849e8cef4, type: 3}
   m_Name: BasicTowerData
   m_EditorClassIdentifier: Assembly-CSharp::TD.Tower.TowerPlacementData
+  towerData: {fileID: 11400000, guid: 7e18419d8302469db000ffc70ce9df3a, type: 2}
   towerName: Basic Tower
   towerPrefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
   cost: 10
