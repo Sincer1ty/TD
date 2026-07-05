@@ -65,6 +65,8 @@ namespace TD.Placement
         public PlacementTile HoveredTile => hoveredTile;
         public int InstalledTowerCount => placedTowers.Count;
         public IReadOnlyDictionary<PlacementTile, TowerBehaviour> PlacedTowers => placedTowers;
+        public UnityEvent<TowerData> OnTowerSelected => towerSelected;
+        public UnityEvent<bool> OnPlacementModeChanged => placementModeChanged;
 
         private void OnEnable()
         {

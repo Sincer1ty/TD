@@ -22,6 +22,9 @@ namespace TD.Placement
         [SerializeField] private UnityEvent towerSelectionChanged = new UnityEvent();
         [SerializeField] private UnityEvent onTowerDeselected = new UnityEvent();
 
+        [Header("Debug")]
+        [SerializeField] private bool debugLog;
+
         private TowerBehaviour selectedTower;
         private PlacementTile selectedTile;
 
@@ -83,6 +86,14 @@ namespace TD.Placement
 
             PlacementTile clickedTile = TryGetPlacementTileUnderMouse();
             TowerBehaviour clickedTower = clickedTile != null ? clickedTile.GetCurrentTower() : null;
+
+            if (debugLog)
+            {
+                string tileName = clickedTile != null ? clickedTile.name : "None";
+                string towerName = clickedTower != null ? clickedTower.name : "None";
+                Debug.Log($"Tower selection click. tile={tileName}, currentTower={towerName}", this);
+            }
+
             if (clickedTile != null && clickedTower != null)
             {
                 SelectTower(clickedTower, clickedTile);
@@ -100,6 +111,12 @@ namespace TD.Placement
 
         public void SelectTower(TowerBehaviour tower, PlacementTile tile)
         {
+            if (tower == null)
+            {
+                DeselectTower();
+                return;
+            }
+
             if (selectedTower == tower && selectedTile == tile)
             {
                 RefreshRangeIndicator();
@@ -111,6 +128,12 @@ namespace TD.Placement
             selectedTower = tower;
             selectedTile = tile;
             SubscribeSelectedTower();
+
+            if (debugLog)
+            {
+                Debug.Log($"Selected tower '{selectedTower.name}' from placement tile '{(selectedTile != null ? selectedTile.name : "None")}'.", this);
+            }
+
             RefreshRangeIndicator();
             ShowSelectedTowerUi();
             towerSelectionChanged?.Invoke();
@@ -126,6 +149,11 @@ namespace TD.Placement
             }
 
             UnsubscribeSelectedTower();
+            if (debugLog)
+            {
+                Debug.Log($"Deselected tower '{selectedTower.name}'.", this);
+            }
+
             selectedTower = null;
             selectedTile = null;
             HideRangeIndicator();
@@ -135,8 +163,15 @@ namespace TD.Placement
 
         public void RefreshRangeIndicator()
         {
-            if (selectedTower == null || selectedTower.CurrentAttackRange <= 0f)
+            if (selectedTower == null)
             {
+                HideRangeIndicator();
+                return;
+            }
+
+            if (selectedTower.CurrentAttackRange <= 0f)
+            {
+                Debug.LogWarning($"Selected tower '{selectedTower.name}' has CurrentAttackRange <= 0. RangeIndicator will be hidden.", this);
                 HideRangeIndicator();
                 return;
             }
@@ -149,6 +184,11 @@ namespace TD.Placement
 
             indicator.SetValidState(true);
             indicator.Show(selectedTower.transform.position, selectedTower.CurrentAttackRange);
+
+            if (debugLog)
+            {
+                Debug.Log($"Show selected tower range. tower={selectedTower.name}, range={selectedTower.CurrentAttackRange}, position={selectedTower.transform.position}", this);
+            }
         }
 
         public void SetSelectionEnabled(bool enabled)
@@ -183,7 +223,9 @@ namespace TD.Placement
 
             if (rangeIndicatorPrefab == null)
             {
-                return null;
+                Debug.LogWarning("TowerSelectionController has no rangeIndicatorPrefab or rangeIndicator assigned. Creating a generated fallback RangeIndicator.", this);
+                rangeIndicator = CreateGeneratedRangeIndicator();
+                return rangeIndicator;
             }
 
             rangeIndicator = Instantiate(rangeIndicatorPrefab, transform);
@@ -195,8 +237,28 @@ namespace TD.Placement
         {
             if (rangeIndicator != null)
             {
+                if (debugLog)
+                {
+                    Debug.Log("Hide selected tower range indicator.", this);
+                }
+
                 rangeIndicator.Hide();
             }
+        }
+
+        private RangeIndicator CreateGeneratedRangeIndicator()
+        {
+            GameObject indicatorObject = new GameObject("SelectedTowerRangeIndicator");
+            indicatorObject.transform.SetParent(transform);
+
+            SpriteRenderer renderer = indicatorObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetGeneratedCircleSprite();
+            renderer.sortingOrder = 100;
+
+            RangeIndicator indicator = indicatorObject.AddComponent<RangeIndicator>();
+            indicator.SetSpriteRenderer(renderer);
+            indicator.Hide();
+            return indicator;
         }
 
         private void SubscribeSelectedTower()
@@ -269,9 +331,11 @@ namespace TD.Placement
 
         private void HandleSelectedTowerSold()
         {
+            UnsubscribeSelectedTower();
             selectedTower = null;
             selectedTile = null;
             HideRangeIndicator();
+            HideSelectedTowerUi();
             onTowerDeselected?.Invoke();
         }
 
@@ -280,6 +344,44 @@ namespace TD.Placement
             return worldCamera != null && !worldCamera.orthographic
                 ? worldCamera.nearClipPlane
                 : Mathf.Abs(worldCamera != null ? worldCamera.transform.position.z : 0f);
+        }
+
+        private static Sprite generatedCircleSprite;
+
+        private static Sprite GetGeneratedCircleSprite()
+        {
+            if (generatedCircleSprite != null)
+            {
+                return generatedCircleSprite;
+            }
+
+            const int size = 128;
+            const float radius = size * 0.5f - 1f;
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            Texture2D texture = new Texture2D(size, size)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
+                    float alpha = distance <= radius ? 1f : 0f;
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+
+            texture.Apply();
+            generatedCircleSprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f),
+                size);
+
+            return generatedCircleSprite;
         }
     }
 }
