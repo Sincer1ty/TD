@@ -28,11 +28,27 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Area tower for grouped enemies.
-  areaEffectPrefab: {fileID: 3802302459956397560, guid: 4530682cc35cadf4d8c00dbe3b506ee7, type: 3}
-  areaEffectScaleMultiplier: 0.2
+  areaEffectPrefab: {fileID: 6372831316990896649, guid: 25e2692b718fb4449949870cb2243b46, type: 3}
+  areaEffectScaleMultiplier: 1
   areaEffectLifetime: 1.5
   areaEffectZOffset: -0.1
   areaEffectSortingLayerName: Effect
   areaEffectSortingOrder: 50
   slowPercent: 0.4
   slowDuration: 1.5
+  levelStats:
+  - level: 1
+    damage: 18
+    attackRange: 3
+    attackSpeed: 0.8
+    upgradeCost: 0
+  - level: 2
+    damage: 28
+    attackRange: 3.5
+    attackSpeed: 0.95
+    upgradeCost: 100
+  - level: 3
+    damage: 42
+    attackRange: 4
+    attackSpeed: 1.1
+    upgradeCost: 180

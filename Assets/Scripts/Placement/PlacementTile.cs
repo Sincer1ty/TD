@@ -39,6 +39,11 @@ namespace TD.Placement
             return isBuildable && !isOccupied && currentTower == null;
         }
 
+        public TowerBehaviour GetCurrentTower()
+        {
+            return currentTower;
+        }
+
         public bool PlaceTower(TowerBehaviour tower)
         {
             if (tower == null || !CanPlace())

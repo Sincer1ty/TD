@@ -36,3 +36,19 @@ MonoBehaviour:
   areaEffectSortingOrder: 20
   slowPercent: 0.45
   slowDuration: 2
+  levelStats:
+  - level: 1
+    damage: 6
+    attackRange: 2.5
+    attackSpeed: 1
+    upgradeCost: 0
+  - level: 2
+    damage: 10
+    attackRange: 2.9
+    attackSpeed: 1.15
+    upgradeCost: 75
+  - level: 3
+    damage: 16
+    attackRange: 3.3
+    attackSpeed: 1.35
+    upgradeCost: 140

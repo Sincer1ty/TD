@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d13f50aed029497a8bc89e9d6a9e29ea, type: 3}
-  m_Name: Enemy_Fast
+  m_Name: Enemy_Strong
   m_EditorClassIdentifier: 
-  enemyName: Fast
+  enemyName: Strong
   enemyType: 1
-  maxHp: 60
-  moveSpeed: 3.5
+  maxHp: 160
+  moveSpeed: 2
   rewardGold: 6
   damageToBase: 1
   isBoss: 0
-  prefab: {fileID: 2546431474593599657, guid: ac98ec63a284e9d48948ffa4edcab647, type: 3}
+  prefab: {fileID: 2546431474593599657, guid: d6959d6b6ca3f3949b1e04d5e6ff4a5c, type: 3}
   icon: {fileID: 0}
   description: Fast enemy with lower health.

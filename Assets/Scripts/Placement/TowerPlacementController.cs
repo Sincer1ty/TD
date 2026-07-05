@@ -235,6 +235,7 @@ namespace TD.Placement
                 towersRoot);
 
             tower.Initialize(selectedTower);
+            tower.SetCostProvider(costProviderBehaviour);
             tower.transform.position = towerPosition;
 
             if (!hoveredTile.PlaceTower(tower))

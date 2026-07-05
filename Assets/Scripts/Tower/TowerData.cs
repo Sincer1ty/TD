@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TD.Tower
@@ -33,6 +34,7 @@ namespace TD.Tower
         [Range(0f, 1f)]
         [SerializeField] private float slowPercent = 0.4f;
         [SerializeField] private float slowDuration = 1.5f;
+        [SerializeField] private List<TowerLevelStats> levelStats = new List<TowerLevelStats>();
 
         public string TowerName => towerName;
         public TowerType TowerType => towerType;
@@ -58,6 +60,49 @@ namespace TD.Tower
         public int AreaEffectSortingOrder => areaEffectSortingOrder;
         public float SlowPercent => Mathf.Clamp01(slowPercent);
         public float SlowDuration => Mathf.Max(0f, slowDuration);
+        public IReadOnlyList<TowerLevelStats> LevelStats => levelStats;
+        public int MaxLevel => Mathf.Max(1, GetMaxConfiguredLevel());
+
+        public TowerLevelStats GetStatsForLevel(int level)
+        {
+            int safeLevel = Mathf.Max(1, level);
+            TowerLevelStats bestStats = null;
+
+            if (levelStats != null)
+            {
+                for (int i = 0; i < levelStats.Count; i++)
+                {
+                    TowerLevelStats stats = levelStats[i];
+                    if (stats == null)
+                    {
+                        continue;
+                    }
+
+                    if (stats.Level == safeLevel)
+                    {
+                        return stats;
+                    }
+
+                    if (stats.Level < safeLevel && (bestStats == null || stats.Level > bestStats.Level))
+                    {
+                        bestStats = stats;
+                    }
+                }
+            }
+
+            return bestStats ?? new TowerLevelStats(1, Damage, AttackRange, AttackSpeed, UpgradeCost);
+        }
+
+        public int GetUpgradeCostForNextLevel(int currentLevel)
+        {
+            int nextLevel = currentLevel + 1;
+            if (nextLevel > MaxLevel)
+            {
+                return 0;
+            }
+
+            return GetStatsForLevel(nextLevel).UpgradeCost;
+        }
 
         private void OnValidate()
         {
@@ -72,6 +117,31 @@ namespace TD.Tower
             areaEffectLifetime = Mathf.Max(0.01f, areaEffectLifetime);
             slowPercent = Mathf.Clamp01(slowPercent);
             slowDuration = Mathf.Max(0f, slowDuration);
+
+            if (levelStats == null)
+            {
+                levelStats = new List<TowerLevelStats>();
+            }
+        }
+
+        private int GetMaxConfiguredLevel()
+        {
+            int maxLevel = 1;
+            if (levelStats == null || levelStats.Count == 0)
+            {
+                return maxLevel;
+            }
+
+            for (int i = 0; i < levelStats.Count; i++)
+            {
+                TowerLevelStats stats = levelStats[i];
+                if (stats != null)
+                {
+                    maxLevel = Mathf.Max(maxLevel, stats.Level);
+                }
+            }
+
+            return maxLevel;
         }
     }
 }

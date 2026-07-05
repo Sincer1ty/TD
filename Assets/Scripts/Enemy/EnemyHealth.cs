@@ -8,6 +8,8 @@ namespace TD.Enemy
     {
         [SerializeField] private float maxHp = 100f;
         [SerializeField] private float currentHp;
+        [SerializeField] private EnemyHitFlash hitFlash;
+        [SerializeField] private bool autoCreateHitFlash = true;
         [SerializeField] private UnityEvent<EnemyHealth> onDeath;
         [SerializeField] private UnityEvent<float, float> onHealthChanged;
 
@@ -22,6 +24,16 @@ namespace TD.Enemy
 
         private void Awake()
         {
+            if (hitFlash == null)
+            {
+                hitFlash = GetComponent<EnemyHitFlash>();
+            }
+
+            if (hitFlash == null && autoCreateHitFlash)
+            {
+                hitFlash = gameObject.AddComponent<EnemyHitFlash>();
+            }
+
             if (currentHp <= 0f)
             {
                 currentHp = maxHp;
@@ -49,11 +61,12 @@ namespace TD.Enemy
             }
 
             currentHp = Mathf.Max(0f, currentHp - damage);
-            Debug.Log("currentHp: " + currentHp + "");
             NotifyHealthChanged();
-            
-            SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-            spriteRenderer.color = Color.Lerp(spriteRenderer.color, Color.red, currentHp / maxHp);
+
+            if (hitFlash != null)
+            {
+                hitFlash.PlayFlash();
+            }
 
             if (currentHp <= 0f)
             {
@@ -69,6 +82,11 @@ namespace TD.Enemy
             }
 
             isDead = true;
+            if (hitFlash != null)
+            {
+                hitFlash.StopFlash();
+            }
+
             currentHp = 0f;
             NotifyHealthChanged();
             Death?.Invoke(this);

@@ -15,10 +15,10 @@ MonoBehaviour:
   enemyName: Tank
   enemyType: 2
   maxHp: 300
-  moveSpeed: 1.2
+  moveSpeed: 2
   rewardGold: 10
-  damageToBase: 2
+  damageToBase: 1
   isBoss: 0
-  prefab: {fileID: 2546431474593599657, guid: ac98ec63a284e9d48948ffa4edcab647, type: 3}
+  prefab: {fileID: 2546431474593599657, guid: fadb84acd7f7d44499811163c40ab7c8, type: 3}
   icon: {fileID: 0}
   description: Durable enemy with slower movement.

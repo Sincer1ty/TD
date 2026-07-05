@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using TD.Enemy;
+using TD.Economy;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace TD.Tower
 {
@@ -17,12 +19,32 @@ namespace TD.Tower
         [SerializeField] private bool logMeleeHitCount;
         [SerializeField] private bool logProjectileEvents;
         [SerializeField] private bool logAreaEvents;
-        [SerializeField] private int upgradeLevel;
+        [Header("Upgrade")]
+        [SerializeField] private MonoBehaviour costProviderBehaviour;
+        [SerializeField] private int currentLevel = 1;
+        [SerializeField] private int maxLevel = 3;
+        [SerializeField] private float currentDamage;
+        [SerializeField] private float currentAttackRange;
+        [SerializeField] private float currentAttackSpeed;
+        [SerializeField] private bool allowUpgradeWithoutCostProvider;
+        [SerializeField] private bool logUpgradeEvents;
+        [SerializeField] private UnityEvent<Tower> onTowerUpgraded = new UnityEvent<Tower>();
+        [SerializeField] private UnityEvent<Tower> onTowerStatsChanged = new UnityEvent<Tower>();
+        [SerializeField] private UnityEvent<Tower> onUpgradeFailed = new UnityEvent<Tower>();
 
         private float attackTimer;
+        private ITowerCostProvider costProvider;
 
         public TowerData Data => data;
-        public int UpgradeLevel => upgradeLevel;
+        public int CurrentLevel => currentLevel;
+        public int MaxLevel => maxLevel;
+        public int UpgradeLevel => currentLevel;
+        public float CurrentDamage => currentDamage;
+        public float CurrentAttackRange => currentAttackRange;
+        public float CurrentAttackSpeed => currentAttackSpeed;
+        public UnityEvent<Tower> OnTowerUpgraded => onTowerUpgraded;
+        public UnityEvent<Tower> OnTowerStatsChanged => onTowerStatsChanged;
+        public UnityEvent<Tower> OnUpgradeFailed => onUpgradeFailed;
 
         private void Awake()
         {
@@ -70,39 +92,126 @@ namespace TD.Tower
         public void Initialize(TowerData towerData)
         {
             data = towerData;
+            currentLevel = 1;
             attackTimer = 0f;
+            CacheCostProvider();
+            ApplyLevelStats();
         }
 
         public bool CanUpgrade(ITowerCostProvider costProvider)
         {
-            if (data == null)
+            if (data == null || currentLevel >= maxLevel)
             {
                 return false;
             }
 
-            return costProvider == null || costProvider.CanAfford(data.UpgradeCost);
+            int cost = GetNextUpgradeCost();
+            return costProvider != null
+                ? costProvider.CanAfford(cost)
+                : allowUpgradeWithoutCostProvider || cost <= 0;
         }
 
         public bool Upgrade(ITowerCostProvider costProvider)
         {
+            return TryUpgrade(costProvider);
+        }
+
+        public bool CanUpgrade()
+        {
+            return CanUpgrade(GetCostProvider());
+        }
+
+        public int GetNextUpgradeCost()
+        {
+            if (data == null || currentLevel >= maxLevel)
+            {
+                return 0;
+            }
+
+            return data.GetUpgradeCostForNextLevel(currentLevel);
+        }
+
+        public bool TryUpgrade()
+        {
+            return TryUpgrade(GetCostProvider());
+        }
+
+        public bool TryUpgrade(ITowerCostProvider provider)
+        {
             if (data == null)
             {
+                LogUpgradeFailure("missing TowerData");
+                onUpgradeFailed?.Invoke(this);
                 return false;
             }
 
-            int cost = data.UpgradeCost;
-            if (costProvider != null && !costProvider.CanAfford(cost))
+            if (currentLevel >= maxLevel)
             {
+                LogUpgradeFailure("already at max level");
+                onUpgradeFailed?.Invoke(this);
                 return false;
             }
 
-            if (costProvider != null && !costProvider.SpendCost(cost))
+            int cost = GetNextUpgradeCost();
+            if (provider == null && cost > 0 && !allowUpgradeWithoutCostProvider)
             {
+                LogUpgradeFailure("missing gold provider");
+                onUpgradeFailed?.Invoke(this);
                 return false;
             }
 
-            upgradeLevel++;
+            if (provider != null && !provider.CanAfford(cost))
+            {
+                LogUpgradeFailure($"not enough gold. Required: {cost}");
+                onUpgradeFailed?.Invoke(this);
+                return false;
+            }
+
+            if (provider != null && !provider.SpendCost(cost))
+            {
+                LogUpgradeFailure($"failed to spend upgrade cost: {cost}");
+                onUpgradeFailed?.Invoke(this);
+                return false;
+            }
+
+            currentLevel++;
+            ApplyLevelStats();
+            onTowerUpgraded?.Invoke(this);
+
+            if (logUpgradeEvents)
+            {
+                Debug.Log($"Tower '{name}' upgraded to level {currentLevel}. Damage={currentDamage}, Range={currentAttackRange}, Speed={currentAttackSpeed}.");
+            }
+
             return true;
+        }
+
+        public void ApplyLevelStats()
+        {
+            if (data == null)
+            {
+                currentLevel = Mathf.Max(1, currentLevel);
+                maxLevel = Mathf.Max(1, maxLevel);
+                currentDamage = 0f;
+                currentAttackRange = 0f;
+                currentAttackSpeed = 0f;
+                onTowerStatsChanged?.Invoke(this);
+                return;
+            }
+
+            maxLevel = Mathf.Clamp(data.MaxLevel, 1, 3);
+            currentLevel = Mathf.Clamp(currentLevel, 1, maxLevel);
+
+            TowerLevelStats stats = data.GetStatsForLevel(currentLevel);
+            currentDamage = stats != null ? stats.Damage : data.Damage;
+            currentAttackRange = stats != null ? stats.AttackRange : data.AttackRange;
+            currentAttackSpeed = stats != null ? stats.AttackSpeed : data.AttackSpeed;
+            onTowerStatsChanged?.Invoke(this);
+
+            if (logUpgradeEvents)
+            {
+                Debug.Log($"Tower '{name}' applied level {currentLevel} stats. Damage={currentDamage}, Range={currentAttackRange}, Speed={currentAttackSpeed}.");
+            }
         }
 
         public void SetAttackEnabled(bool enabled)
@@ -110,16 +219,22 @@ namespace TD.Tower
             attackEnabled = enabled;
         }
 
+        public void SetCostProvider(MonoBehaviour providerBehaviour)
+        {
+            costProviderBehaviour = providerBehaviour;
+            CacheCostProvider();
+        }
+
         private EnemyHealth FindTarget()
         {
-            if (data == null || data.AttackRange <= 0f)
+            if (data == null || CurrentAttackRange <= 0f)
             {
                 return null;
             }
 
             Collider2D[] enemyHits = Physics2D.OverlapCircleAll(
                 transform.position,
-                data.AttackRange,
+                CurrentAttackRange,
                 enemyLayer);
 
             EnemyHealth bestTarget = null;
@@ -239,7 +354,7 @@ namespace TD.Tower
                     if (target != null && !target.IsDead)
                     {
                         ApplySlow(target);
-                        target.TakeDamage(data.Damage);
+                        target.TakeDamage(CurrentDamage);
                     }
                     break;
             }
@@ -247,7 +362,7 @@ namespace TD.Tower
 
         private bool AttackMelee(EnemyHealth facingTarget)
         {
-            if (data == null || data.AttackRange <= 0f)
+            if (data == null || CurrentAttackRange <= 0f)
             {
                 return false;
             }
@@ -289,7 +404,7 @@ namespace TD.Tower
         {
             Collider2D[] enemyHits = Physics2D.OverlapCircleAll(
                 transform.position,
-                data.AttackRange,
+                CurrentAttackRange,
                 enemyLayer);
 
             HashSet<EnemyHealth> damagedEnemies = new HashSet<EnemyHealth>();
@@ -331,7 +446,7 @@ namespace TD.Tower
                     continue;
                 }
 
-                enemy.TakeDamage(data.Damage);
+                enemy.TakeDamage(CurrentDamage);
                 hitCount++;
             }
 
@@ -384,7 +499,7 @@ namespace TD.Tower
 
             projectile.Initialize(
                 target,
-                data.Damage,
+                CurrentDamage,
                 data.ProjectileSpeed,
                 data.ProjectileLifetime,
                 enemyLayer,
@@ -403,7 +518,7 @@ namespace TD.Tower
                 return;
             }
 
-            float radius = data.AttackRange;
+            float radius = CurrentAttackRange;
             if (radius <= 0f)
             {
                 if (logAreaEvents)
@@ -432,7 +547,7 @@ namespace TD.Tower
                 EnemyHealth enemy = hit.GetComponentInParent<EnemyHealth>();
                 if (enemy != null && !enemy.IsDead && damagedEnemies.Add(enemy))
                 {
-                    enemy.TakeDamage(data.Damage);
+                    enemy.TakeDamage(CurrentDamage);
                     hitCount++;
                 }
             }
@@ -519,8 +634,8 @@ namespace TD.Tower
 
         private float GetAttackCooldown()
         {
-            return data != null && data.AttackSpeed > 0f
-                ? 1f / data.AttackSpeed
+            return data != null && CurrentAttackSpeed > 0f
+                ? 1f / CurrentAttackSpeed
                 : float.PositiveInfinity;
         }
 
@@ -544,7 +659,36 @@ namespace TD.Tower
             }
 
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, data.AttackRange);
+            Gizmos.DrawWireSphere(transform.position, CurrentAttackRange);
+        }
+
+        private ITowerCostProvider GetCostProvider()
+        {
+            if (costProvider == null)
+            {
+                CacheCostProvider();
+            }
+
+            return costProvider;
+        }
+
+        private void CacheCostProvider()
+        {
+            costProvider = costProviderBehaviour as ITowerCostProvider;
+            if (costProvider == null)
+            {
+                GoldManager goldManager = FindFirstObjectByType<GoldManager>();
+                costProvider = goldManager;
+                costProviderBehaviour = goldManager;
+            }
+        }
+
+        private void LogUpgradeFailure(string reason)
+        {
+            if (logUpgradeEvents)
+            {
+                Debug.Log($"Tower '{name}' upgrade failed: {reason}.");
+            }
         }
     }
 }
