@@ -24,7 +24,12 @@ namespace TD.Tower
         [SerializeField] private string description;
 
         [Header("Mode Tuning")]
-        [SerializeField] private float areaRadius = 1f;
+        [SerializeField] private GameObject areaEffectPrefab;
+        [SerializeField] private float areaEffectScaleMultiplier = 1f;
+        [SerializeField] private float areaEffectLifetime = 1.5f;
+        [SerializeField] private float areaEffectZOffset = -0.1f;
+        [SerializeField] private string areaEffectSortingLayerName = "Default";
+        [SerializeField] private int areaEffectSortingOrder = 20;
         [Range(0f, 1f)]
         [SerializeField] private float slowPercent = 0.4f;
         [SerializeField] private float slowDuration = 1.5f;
@@ -45,7 +50,12 @@ namespace TD.Tower
         public float ProjectileLifetime => Mathf.Max(0.01f, projectileLifetime);
         public Sprite Icon => icon;
         public string Description => description;
-        public float AreaRadius => Mathf.Max(0f, areaRadius);
+        public GameObject AreaEffectPrefab => areaEffectPrefab;
+        public float AreaEffectScaleMultiplier => Mathf.Max(0.01f, areaEffectScaleMultiplier);
+        public float AreaEffectLifetime => Mathf.Max(0.01f, areaEffectLifetime);
+        public float AreaEffectZOffset => areaEffectZOffset;
+        public string AreaEffectSortingLayerName => areaEffectSortingLayerName;
+        public int AreaEffectSortingOrder => areaEffectSortingOrder;
         public float SlowPercent => Mathf.Clamp01(slowPercent);
         public float SlowDuration => Mathf.Max(0f, slowDuration);
 
@@ -58,7 +68,8 @@ namespace TD.Tower
             upgradeCost = Mathf.Max(0, upgradeCost);
             projectileSpeed = Mathf.Max(0f, projectileSpeed);
             projectileLifetime = Mathf.Max(0.01f, projectileLifetime);
-            areaRadius = Mathf.Max(0f, areaRadius);
+            areaEffectScaleMultiplier = Mathf.Max(0.01f, areaEffectScaleMultiplier);
+            areaEffectLifetime = Mathf.Max(0.01f, areaEffectLifetime);
             slowPercent = Mathf.Clamp01(slowPercent);
             slowDuration = Mathf.Max(0f, slowDuration);
         }

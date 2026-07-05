@@ -28,6 +28,11 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Area tower for grouped enemies.
-  areaRadius: 1.2
+  areaEffectPrefab: {fileID: 3802302459956397560, guid: 4530682cc35cadf4d8c00dbe3b506ee7, type: 3}
+  areaEffectScaleMultiplier: 0.2
+  areaEffectLifetime: 1.5
+  areaEffectZOffset: -0.1
+  areaEffectSortingLayerName: Effect
+  areaEffectSortingOrder: 50
   slowPercent: 0.4
   slowDuration: 1.5

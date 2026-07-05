@@ -16,6 +16,7 @@ namespace TD.Tower
         [SerializeField] private float attackHitDelay = 0.1f;
         [SerializeField] private bool logMeleeHitCount;
         [SerializeField] private bool logProjectileEvents;
+        [SerializeField] private bool logAreaEvents;
         [SerializeField] private int upgradeLevel;
 
         private float attackTimer;
@@ -174,6 +175,11 @@ namespace TD.Tower
                 return AttackSingleTarget(target, AttackMode.Projectile);
             }
 
+            if (data.TowerType == TowerType.Mage || data.AttackMode == AttackMode.Area)
+            {
+                return AttackSingleTarget(target, AttackMode.Area);
+            }
+
             switch (data.AttackMode)
             {
                 case AttackMode.Projectile:
@@ -200,23 +206,23 @@ namespace TD.Tower
 
             if (immediateDamage || attackHitDelay <= 0f)
             {
-                ApplySingleTargetAttack(target, attackMode, targetPosition);
+                ApplySingleTargetAttack(target, attackMode);
             }
             else
             {
-                StartCoroutine(DelayedSingleTargetAttack(target, attackMode, targetPosition));
+                StartCoroutine(DelayedSingleTargetAttack(target, attackMode));
             }
 
             return true;
         }
 
-        private IEnumerator DelayedSingleTargetAttack(EnemyHealth target, AttackMode attackMode, Vector3 fallbackPosition)
+        private IEnumerator DelayedSingleTargetAttack(EnemyHealth target, AttackMode attackMode)
         {
             yield return new WaitForSeconds(Mathf.Max(0f, attackHitDelay));
-            ApplySingleTargetAttack(target, attackMode, fallbackPosition);
+            ApplySingleTargetAttack(target, attackMode);
         }
 
-        private void ApplySingleTargetAttack(EnemyHealth target, AttackMode attackMode, Vector3 fallbackPosition)
+        private void ApplySingleTargetAttack(EnemyHealth target, AttackMode attackMode)
         {
             switch (attackMode)
             {
@@ -227,7 +233,7 @@ namespace TD.Tower
                     }
                     break;
                 case AttackMode.Area:
-                    AttackArea(target != null && !target.IsDead ? target.transform.position : fallbackPosition);
+                    AttackArea();
                     break;
                 case AttackMode.Slow:
                     if (target != null && !target.IsDead)
@@ -390,10 +396,30 @@ namespace TD.Tower
             }
         }
 
-        private void AttackArea(Vector3 center)
+        private void AttackArea()
         {
-            float radius = data.AreaRadius > 0f ? data.AreaRadius : data.AttackRange;
+            if (data == null)
+            {
+                return;
+            }
+
+            float radius = data.AttackRange;
+            if (radius <= 0f)
+            {
+                if (logAreaEvents)
+                {
+                    Debug.LogWarning($"Tower '{data.TowerName}' has invalid attackRange. Area attack was skipped.");
+                }
+
+                return;
+            }
+
+            Vector3 center = transform.position;
+            SpawnAreaEffect(center, radius);
+
             Collider2D[] enemyHits = Physics2D.OverlapCircleAll(center, radius, enemyLayer);
+            HashSet<EnemyHealth> damagedEnemies = new HashSet<EnemyHealth>();
+            int hitCount = 0;
 
             for (int i = 0; i < enemyHits.Length; i++)
             {
@@ -404,10 +430,81 @@ namespace TD.Tower
                 }
 
                 EnemyHealth enemy = hit.GetComponentInParent<EnemyHealth>();
-                if (enemy != null && !enemy.IsDead)
+                if (enemy != null && !enemy.IsDead && damagedEnemies.Add(enemy))
                 {
                     enemy.TakeDamage(data.Damage);
+                    hitCount++;
                 }
+            }
+
+            if (logAreaEvents)
+            {
+                Debug.Log($"Area attack hit {hitCount} enemies around tower '{name}' with attackRange {radius}.");
+            }
+        }
+
+        private void SpawnAreaEffect(Vector3 center, float radius)
+        {
+            if (data == null || data.AreaEffectPrefab == null)
+            {
+                if (logAreaEvents)
+                {
+                    Debug.LogWarning($"Tower '{data?.TowerName ?? name}' has no areaEffectPrefab. Area damage still applies.");
+                }
+
+                return;
+            }
+
+            Vector3 effectPosition = GetAreaEffectPosition(center);
+            GameObject effectObject = Instantiate(data.AreaEffectPrefab, effectPosition, Quaternion.identity);
+            ApplyAreaEffectSorting(effectObject);
+
+            AreaExplosionEffect explosionEffect = effectObject.GetComponent<AreaExplosionEffect>();
+            if (explosionEffect == null)
+            {
+                explosionEffect = effectObject.AddComponent<AreaExplosionEffect>();
+            }
+
+            explosionEffect.ConfigureRendering(
+                data.AreaEffectSortingLayerName,
+                data.AreaEffectSortingOrder,
+                logAreaEvents);
+            explosionEffect.Play(effectPosition, radius, data.AreaEffectScaleMultiplier);
+            Destroy(effectObject, data.AreaEffectLifetime);
+
+            if (logAreaEvents)
+            {
+                Debug.Log($"Area effect spawned at tower position {effectPosition} with attackRange {radius}.");
+            }
+        }
+
+        private Vector3 GetAreaEffectPosition(Vector3 center)
+        {
+            center.z = data != null ? data.AreaEffectZOffset : center.z;
+            return center;
+        }
+
+        private void ApplyAreaEffectSorting(GameObject effectObject)
+        {
+            if (effectObject == null || data == null)
+            {
+                return;
+            }
+
+            foreach (ParticleSystemRenderer renderer in effectObject.GetComponentsInChildren<ParticleSystemRenderer>(true))
+            {
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(data.AreaEffectSortingLayerName))
+                {
+                    renderer.sortingLayerName = data.AreaEffectSortingLayerName;
+                }
+
+                renderer.sortingOrder = data.AreaEffectSortingOrder;
+                renderer.enabled = true;
             }
         }
 

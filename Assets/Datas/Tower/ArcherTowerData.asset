@@ -28,6 +28,11 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Long range single-target tower.
-  areaRadius: 1
+  areaEffectPrefab: {fileID: 0}
+  areaEffectScaleMultiplier: 1
+  areaEffectLifetime: 1.5
+  areaEffectZOffset: -0.1
+  areaEffectSortingLayerName: Default
+  areaEffectSortingOrder: 20
   slowPercent: 0.4
   slowDuration: 1.5
