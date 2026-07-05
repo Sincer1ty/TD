@@ -21,6 +21,8 @@ MonoBehaviour:
   targetPriority: 0
   cost: 80
   upgradeCost: 65
+  sellRefundGold: -1
+  sellRefundRate: 0.5
   prefab: {fileID: 4343967645554337613, guid: f72854c0e7c9d284a990da580f7a51b7, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 5116014145999484704, guid: c284e10a1bcf3d948aea4a2ab056ea46, type: 3}

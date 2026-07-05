@@ -615,6 +615,30 @@ namespace TD.Placement
             return true;
         }
 
+        public bool SellPlacedTower(PlacementTile tile)
+        {
+            if (tile == null)
+            {
+                return false;
+            }
+
+            TowerBehaviour tower = tile.GetCurrentTower();
+            if (tower == null && !placedTowers.TryGetValue(tile, out tower))
+            {
+                return false;
+            }
+
+            if (tower == null || !tower.Sell())
+            {
+                return false;
+            }
+
+            placedTowers.Remove(tile);
+            RefreshInstalledTowerCount();
+            RefreshHoveredTile();
+            return true;
+        }
+
         private float GetCameraWorldDistance()
         {
             return worldCamera != null && !worldCamera.orthographic

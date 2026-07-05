@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TD.Enemy;
 using TD.Economy;
+using TD.Placement;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -31,6 +32,8 @@ namespace TD.Tower
         [SerializeField] private UnityEvent<Tower> onTowerUpgraded = new UnityEvent<Tower>();
         [SerializeField] private UnityEvent<Tower> onTowerStatsChanged = new UnityEvent<Tower>();
         [SerializeField] private UnityEvent<Tower> onUpgradeFailed = new UnityEvent<Tower>();
+        [Header("Placement")]
+        [SerializeField] private PlacementTile placedTile;
 
         private float attackTimer;
         private ITowerCostProvider costProvider;
@@ -42,6 +45,7 @@ namespace TD.Tower
         public float CurrentDamage => currentDamage;
         public float CurrentAttackRange => currentAttackRange;
         public float CurrentAttackSpeed => currentAttackSpeed;
+        public PlacementTile PlacedTile => placedTile;
         public UnityEvent<Tower> OnTowerUpgraded => onTowerUpgraded;
         public UnityEvent<Tower> OnTowerStatsChanged => onTowerStatsChanged;
         public UnityEvent<Tower> OnUpgradeFailed => onUpgradeFailed;
@@ -223,6 +227,41 @@ namespace TD.Tower
         {
             costProviderBehaviour = providerBehaviour;
             CacheCostProvider();
+        }
+
+        public void SetPlacedTile(PlacementTile tile)
+        {
+            placedTile = tile;
+        }
+
+        public int GetSellRefundGold()
+        {
+            return data != null ? data.SellRefundGold : 0;
+        }
+
+        public bool Sell()
+        {
+            GoldManager goldManager = GetGoldManager();
+            int refundGold = GetSellRefundGold();
+            if (refundGold > 0)
+            {
+                if (goldManager == null)
+                {
+                    LogUpgradeFailure("cannot sell because GoldManager is missing");
+                    return false;
+                }
+
+                goldManager.AddGold(refundGold);
+            }
+
+            if (placedTile != null)
+            {
+                placedTile.ClearTower();
+                placedTile = null;
+            }
+
+            Destroy(gameObject);
+            return true;
         }
 
         private EnemyHealth FindTarget()
@@ -681,6 +720,12 @@ namespace TD.Tower
                 costProvider = goldManager;
                 costProviderBehaviour = goldManager;
             }
+        }
+
+        private GoldManager GetGoldManager()
+        {
+            GoldManager goldManager = costProviderBehaviour as GoldManager;
+            return goldManager != null ? goldManager : FindFirstObjectByType<GoldManager>();
         }
 
         private void LogUpgradeFailure(string reason)

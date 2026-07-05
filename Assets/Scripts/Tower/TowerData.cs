@@ -15,6 +15,9 @@ namespace TD.Tower
         [SerializeField] private TargetPriority targetPriority = TargetPriority.Nearest;
         [SerializeField] private int cost = 100;
         [SerializeField] private int upgradeCost = 75;
+        [SerializeField] private int sellRefundGold = -1;
+        [Range(0f, 1f)]
+        [SerializeField] private float sellRefundRate = 0.5f;
         [SerializeField] private Tower prefab;
         [SerializeField] private GameObject previewPrefab;
         [SerializeField] private GameObject projectilePrefab;
@@ -45,6 +48,9 @@ namespace TD.Tower
         public TargetPriority TargetPriority => targetPriority;
         public int Cost => Mathf.Max(0, cost);
         public int UpgradeCost => Mathf.Max(0, upgradeCost);
+        public int SellRefundGold => sellRefundGold >= 0
+            ? sellRefundGold
+            : Mathf.RoundToInt(Cost * Mathf.Clamp01(sellRefundRate));
         public Tower Prefab => prefab;
         public GameObject PreviewPrefab => previewPrefab;
         public GameObject ProjectilePrefab => projectilePrefab;
@@ -111,6 +117,8 @@ namespace TD.Tower
             attackRange = Mathf.Max(0f, attackRange);
             cost = Mathf.Max(0, cost);
             upgradeCost = Mathf.Max(0, upgradeCost);
+            sellRefundGold = Mathf.Max(-1, sellRefundGold);
+            sellRefundRate = Mathf.Clamp01(sellRefundRate);
             projectileSpeed = Mathf.Max(0f, projectileSpeed);
             projectileLifetime = Mathf.Max(0.01f, projectileLifetime);
             areaEffectScaleMultiplier = Mathf.Max(0.01f, areaEffectScaleMultiplier);

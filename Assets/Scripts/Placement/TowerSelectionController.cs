@@ -41,15 +41,30 @@ namespace TD.Placement
             {
                 towerUpgradeUI = FindFirstObjectByType<TowerUpgradeUI>(FindObjectsInactive.Include);
             }
+
+            SubscribeTowerUpgradeUi();
         }
 
         private void OnDisable()
         {
+            UnsubscribeTowerUpgradeUi();
             DeselectTower();
         }
 
         private void Update()
         {
+            if (selectedTower == null && selectedTile != null)
+            {
+                DeselectTower();
+                return;
+            }
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                DeselectTower();
+                return;
+            }
+
             if (!allowSelection || Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
             {
                 return;
@@ -57,6 +72,7 @@ namespace TD.Placement
 
             if (placementController != null && placementController.IsPlacementModeActive)
             {
+                DeselectTower();
                 return;
             }
 
@@ -132,10 +148,7 @@ namespace TD.Placement
             }
 
             indicator.SetValidState(true);
-            Vector3 indicatorPosition = selectedTile != null
-                ? selectedTile.GetBuildPosition()
-                : selectedTower.transform.position;
-            indicator.Show(indicatorPosition, selectedTower.CurrentAttackRange);
+            indicator.Show(selectedTower.transform.position, selectedTower.CurrentAttackRange);
         }
 
         public void SetSelectionEnabled(bool enabled)
@@ -217,7 +230,7 @@ namespace TD.Placement
         {
             if (towerUpgradeUI != null)
             {
-                towerUpgradeUI.ShowTower(selectedTower);
+                towerUpgradeUI.ShowTower(selectedTower, selectedTile);
             }
         }
 
@@ -235,6 +248,31 @@ namespace TD.Placement
             {
                 towerUpgradeUI.Hide();
             }
+        }
+
+        private void SubscribeTowerUpgradeUi()
+        {
+            if (towerUpgradeUI != null)
+            {
+                towerUpgradeUI.OnTowerSold.RemoveListener(HandleSelectedTowerSold);
+                towerUpgradeUI.OnTowerSold.AddListener(HandleSelectedTowerSold);
+            }
+        }
+
+        private void UnsubscribeTowerUpgradeUi()
+        {
+            if (towerUpgradeUI != null)
+            {
+                towerUpgradeUI.OnTowerSold.RemoveListener(HandleSelectedTowerSold);
+            }
+        }
+
+        private void HandleSelectedTowerSold()
+        {
+            selectedTower = null;
+            selectedTile = null;
+            HideRangeIndicator();
+            onTowerDeselected?.Invoke();
         }
 
         private float GetCameraWorldDistance()

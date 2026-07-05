@@ -52,6 +52,7 @@ namespace TD.Placement
             }
 
             currentTower = tower;
+            currentTower.SetPlacedTile(this);
             isOccupied = true;
             ClearHover();
             return true;
