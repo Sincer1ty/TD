@@ -16,7 +16,7 @@ MonoBehaviour:
   towerType: 0
   damage: 12
   attackSpeed: 2
-  attackRange: 1.5
+  attackRange: 1.4
   attackMode: 0
   targetPriority: 1
   cost: 10
@@ -24,6 +24,8 @@ MonoBehaviour:
   prefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
+  projectileSpeed: 8
+  projectileLifetime: 3
   icon: {fileID: 0}
   description: Fast melee tower for nearby enemies.
   areaRadius: 1

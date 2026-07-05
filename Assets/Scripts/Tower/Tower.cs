@@ -15,6 +15,7 @@ namespace TD.Tower
         [SerializeField] private bool immediateDamage = true;
         [SerializeField] private float attackHitDelay = 0.1f;
         [SerializeField] private bool logMeleeHitCount;
+        [SerializeField] private bool logProjectileEvents;
         [SerializeField] private int upgradeLevel;
 
         private float attackTimer;
@@ -59,7 +60,6 @@ namespace TD.Tower
                 return;
             }
 
-            Debug.Log("Attacking");
             if (Attack(target))
             {
                 attackTimer = GetAttackCooldown();
@@ -169,6 +169,11 @@ namespace TD.Tower
                 return false;
             }
 
+            if (data.TowerType == TowerType.Archer || data.AttackMode == AttackMode.Projectile)
+            {
+                return AttackSingleTarget(target, AttackMode.Projectile);
+            }
+
             switch (data.AttackMode)
             {
                 case AttackMode.Projectile:
@@ -236,7 +241,6 @@ namespace TD.Tower
 
         private bool AttackMelee(EnemyHealth facingTarget)
         {
-            Debug.Log("Attacking melee");
             if (data == null || data.AttackRange <= 0f)
             {
                 return false;
@@ -333,7 +337,6 @@ namespace TD.Tower
 
         private void FaceAndPlayAttack(Vector3 targetPosition)
         {
-            Debug.Log("Face and Play Attack");
             if (animationController == null)
             {
                 return;
@@ -345,25 +348,46 @@ namespace TD.Tower
 
         private void FireProjectile(EnemyHealth target)
         {
-            if (data.ProjectilePrefab == null)
+            if (target == null || target.IsDead || data == null)
             {
-                target.TakeDamage(data.Damage);
+                return;
+            }
+
+            GameObject projectilePrefab = data.ProjectilePrefab;
+            if (projectilePrefab == null)
+            {
+                if (logProjectileEvents)
+                {
+                    Debug.LogWarning($"Tower '{data.TowerName}' tried to fire a projectile, but projectilePrefab is not assigned.");
+                }
+
                 return;
             }
 
             Transform spawnPoint = firePoint != null ? firePoint : transform;
             GameObject projectileObject = Instantiate(
-                data.ProjectilePrefab,
+                projectilePrefab,
                 spawnPoint.position,
                 Quaternion.identity);
 
-            TowerProjectile projectile = projectileObject.GetComponent<TowerProjectile>();
+            ArrowProjectile projectile = projectileObject.GetComponent<ArrowProjectile>();
             if (projectile == null)
             {
-                projectile = projectileObject.AddComponent<TowerProjectile>();
+                projectile = projectileObject.AddComponent<ArrowProjectile>();
             }
 
-            projectile.Initialize(target, data.Damage);
+            projectile.Initialize(
+                target,
+                data.Damage,
+                data.ProjectileSpeed,
+                data.ProjectileLifetime,
+                enemyLayer,
+                logProjectileEvents);
+
+            if (logProjectileEvents)
+            {
+                Debug.Log($"Arrow projectile spawned from {spawnPoint.name} toward {target.name}.");
+            }
         }
 
         private void AttackArea(Vector3 center)

@@ -23,7 +23,9 @@ MonoBehaviour:
   upgradeCost: 65
   prefab: {fileID: 4343967645554337613, guid: f72854c0e7c9d284a990da580f7a51b7, type: 3}
   previewPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 5116014145999484704, guid: c284e10a1bcf3d948aea4a2ab056ea46, type: 3}
+  projectileSpeed: 8
+  projectileLifetime: 3
   icon: {fileID: 0}
   description: Long range single-target tower.
   areaRadius: 1

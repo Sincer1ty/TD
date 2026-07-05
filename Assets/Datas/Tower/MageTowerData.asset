@@ -24,6 +24,8 @@ MonoBehaviour:
   prefab: {fileID: 4343967645554337613, guid: 4d7f1fd87d63e5c4f831df0515bc798c, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
+  projectileSpeed: 8
+  projectileLifetime: 3
   icon: {fileID: 0}
   description: Area tower for grouped enemies.
   areaRadius: 1.2

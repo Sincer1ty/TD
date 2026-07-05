@@ -17,6 +17,8 @@ namespace TD.Tower
         [SerializeField] private Tower prefab;
         [SerializeField] private GameObject previewPrefab;
         [SerializeField] private GameObject projectilePrefab;
+        [SerializeField] private float projectileSpeed = 8f;
+        [SerializeField] private float projectileLifetime = 3f;
         [SerializeField] private Sprite icon;
         [TextArea]
         [SerializeField] private string description;
@@ -39,6 +41,8 @@ namespace TD.Tower
         public Tower Prefab => prefab;
         public GameObject PreviewPrefab => previewPrefab;
         public GameObject ProjectilePrefab => projectilePrefab;
+        public float ProjectileSpeed => Mathf.Max(0f, projectileSpeed);
+        public float ProjectileLifetime => Mathf.Max(0.01f, projectileLifetime);
         public Sprite Icon => icon;
         public string Description => description;
         public float AreaRadius => Mathf.Max(0f, areaRadius);
@@ -52,6 +56,8 @@ namespace TD.Tower
             attackRange = Mathf.Max(0f, attackRange);
             cost = Mathf.Max(0, cost);
             upgradeCost = Mathf.Max(0, upgradeCost);
+            projectileSpeed = Mathf.Max(0f, projectileSpeed);
+            projectileLifetime = Mathf.Max(0.01f, projectileLifetime);
             areaRadius = Mathf.Max(0f, areaRadius);
             slowPercent = Mathf.Clamp01(slowPercent);
             slowDuration = Mathf.Max(0f, slowDuration);
