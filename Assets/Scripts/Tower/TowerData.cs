@@ -15,6 +15,7 @@ namespace TD.Tower
         [SerializeField] private int cost = 100;
         [SerializeField] private int upgradeCost = 75;
         [SerializeField] private Tower prefab;
+        [SerializeField] private GameObject previewPrefab;
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private Sprite icon;
         [TextArea]
@@ -36,6 +37,7 @@ namespace TD.Tower
         public int Cost => Mathf.Max(0, cost);
         public int UpgradeCost => Mathf.Max(0, upgradeCost);
         public Tower Prefab => prefab;
+        public GameObject PreviewPrefab => previewPrefab;
         public GameObject ProjectilePrefab => projectilePrefab;
         public Sprite Icon => icon;
         public string Description => description;

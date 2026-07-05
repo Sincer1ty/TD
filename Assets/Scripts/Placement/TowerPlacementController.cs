@@ -4,7 +4,6 @@ using TD.Tower;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using UnityEngine.Tilemaps;
 using TowerBehaviour = TD.Tower.Tower;
 
 namespace TD.Placement
@@ -18,14 +17,12 @@ namespace TD.Placement
         [Header("Input")]
         [SerializeField] private Camera worldCamera;
         [SerializeField] private bool allowPlacementInput = true;
+        [SerializeField] private LayerMask placementTileLayer = ~0;
 
         [Header("Game Over")]
         [SerializeField] private LifeManager lifeManager;
 
-        [Header("Tilemaps")]
-        [SerializeField] private Grid placementGrid;
-        [SerializeField] private Tilemap buildableTilemap;
-        [SerializeField] private Tilemap placementOverlayTilemap;
+        [Header("Scene Roots")]
         [SerializeField] private Transform towersRoot;
 
         [Header("Cost")]
@@ -37,44 +34,37 @@ namespace TD.Placement
         [SerializeField] private float previewAlpha = 0.45f;
         [SerializeField] private Color validPreviewColor = new Color(0.55f, 1f, 0.55f, 0.45f);
         [SerializeField] private Color invalidPreviewColor = new Color(1f, 0.35f, 0.35f, 0.45f);
+        [SerializeField] private int previewSortingOrder = 50;
 
         [Header("Range Indicator")]
         [SerializeField] private bool showRangeIndicator = true;
         [SerializeField] private RangeIndicator rangeIndicatorPrefab;
         [SerializeField] private RangeIndicator rangeIndicator;
 
-        [Header("Overlay")]
-        [SerializeField] private TileBase buildableHoverTile;
-        [SerializeField] private TileBase blockedHoverTile;
-        [SerializeField] private Color buildableHoverColor = new Color(0.25f, 1f, 0.25f, 0.55f);
-        [SerializeField] private Color blockedHoverColor = new Color(1f, 0.2f, 0.2f, 0.55f);
-
         [Header("Events")]
         [SerializeField] private UnityEvent<TowerData> towerSelected;
         [SerializeField] private UnityEvent<bool> placementModeChanged;
-        [SerializeField] private UnityEvent<TowerBehaviour, Vector3Int> towerPlaced;
-        [SerializeField] private UnityEvent<Vector3Int> placementFailed;
+        [SerializeField] private UnityEvent<TowerBehaviour, PlacementTile> towerPlaced;
+        [SerializeField] private UnityEvent<PlacementTile> placementFailed;
         [SerializeField] private UnityEvent<TowerData> insufficientCost;
 
         [Header("Debug")]
         [SerializeField] private int installedTowerCount;
 
-        private readonly Dictionary<Vector3Int, TowerBehaviour> placedTowers = new Dictionary<Vector3Int, TowerBehaviour>();
-        private Vector3Int hoveredCell;
-        private bool hasHoveredCell;
-        private TowerBehaviour previewTower;
+        private readonly Dictionary<PlacementTile, TowerBehaviour> placedTowers = new Dictionary<PlacementTile, TowerBehaviour>();
+        private PlacementTile hoveredTile;
+        private GameObject previewObject;
         private TowerData previewData;
         private SpriteRenderer[] previewRenderers;
-        private Collider2D[] previewColliders;
+        private bool loggedMissingPreviewPrefab;
         private ITowerCostProvider costProvider;
 
         public TowerData SelectedTower => selectedTower;
         public bool IsPlacementModeActive => selectedTower != null;
         public bool AllowPlacementInput => allowPlacementInput;
-        public bool HasHoveredCell => hasHoveredCell;
-        public Vector3Int HoveredCell => hoveredCell;
+        public PlacementTile HoveredTile => hoveredTile;
         public int InstalledTowerCount => placedTowers.Count;
-        public IReadOnlyDictionary<Vector3Int, TowerBehaviour> PlacedTowers => placedTowers;
+        public IReadOnlyDictionary<PlacementTile, TowerBehaviour> PlacedTowers => placedTowers;
 
         private void OnEnable()
         {
@@ -84,6 +74,8 @@ namespace TD.Placement
         private void OnDisable()
         {
             UnsubscribeLifeManager();
+            ClearHover();
+            HideRangeIndicator();
         }
 
         private void Awake()
@@ -93,36 +85,20 @@ namespace TD.Placement
                 worldCamera = Camera.main;
             }
 
-            if (placementGrid == null && buildableTilemap != null)
-            {
-                placementGrid = buildableTilemap.layoutGrid;
-            }
-
             CacheCostProvider();
-            EnsureOverlayTiles();
-        }
-
-        private void OnValidate()
-        {
-            if (placementGrid == null && buildableTilemap != null)
-            {
-                placementGrid = buildableTilemap.layoutGrid;
-            }
         }
 
         private void Update()
         {
             if (!allowPlacementInput)
             {
-                ClearHover();
-                SetPreviewVisible(false);
+                ClearSelectionVisuals();
                 return;
             }
 
             if (selectedTower == null)
             {
-                ClearHover();
-                SetPreviewVisible(false);
+                ClearSelectionVisuals();
                 return;
             }
 
@@ -132,7 +108,7 @@ namespace TD.Placement
                 return;
             }
 
-            UpdateHoveredCell();
+            UpdateHoveredTile();
             UpdatePreview();
             UpdateRangeIndicator();
 
@@ -160,6 +136,7 @@ namespace TD.Placement
             }
 
             ValidateSelectedTowerRange();
+            CreatePreview(selectedTower);
         }
 
         public void SelectTower(TowerPlacementData placementData)
@@ -178,11 +155,6 @@ namespace TD.Placement
             SelectTower(towerOptions[index]);
         }
 
-        public void ClearSelection()
-        {
-            DeselectTower();
-        }
-
         public void CancelPlacement()
         {
             if (selectedTower == null)
@@ -193,26 +165,9 @@ namespace TD.Placement
             DeselectTower();
         }
 
-        public void SetPlacementInputEnabled(bool enabled)
+        public void ClearSelection()
         {
-            allowPlacementInput = enabled;
-
-            if (!allowPlacementInput)
-            {
-                DeselectTower();
-            }
-        }
-
-        public void HandleGameOver()
-        {
-            SetPlacementInputEnabled(false);
-        }
-
-        public void SetLifeManager(LifeManager manager)
-        {
-            UnsubscribeLifeManager();
-            lifeManager = manager;
-            SubscribeLifeManager();
+            DeselectTower();
         }
 
         public void DeselectTower()
@@ -228,35 +183,51 @@ namespace TD.Placement
             ClearSelectionVisuals();
         }
 
+        public void SetPlacementInputEnabled(bool enabled)
+        {
+            allowPlacementInput = enabled;
+
+            if (!allowPlacementInput)
+            {
+                DeselectTower();
+                ClearSelectionVisuals();
+            }
+        }
+
+        public void HandleGameOver()
+        {
+            SetPlacementInputEnabled(false);
+        }
+
+        public void SetLifeManager(LifeManager manager)
+        {
+            UnsubscribeLifeManager();
+            lifeManager = manager;
+            SubscribeLifeManager();
+        }
+
         public bool TryPlaceSelectedTower()
         {
-            if (selectedTower == null || !hasHoveredCell)
+            if (selectedTower == null || hoveredTile == null)
             {
-                placementFailed?.Invoke(hoveredCell);
+                placementFailed?.Invoke(hoveredTile);
                 return false;
             }
 
-            if (!CanPlaceAtCell(hoveredCell) || selectedTower.Prefab == null)
+            if (!CanUseTileForPlacement(hoveredTile) || selectedTower.Prefab == null)
             {
-                placementFailed?.Invoke(hoveredCell);
+                placementFailed?.Invoke(hoveredTile);
                 return false;
             }
 
             if (!CanAfford(selectedTower))
             {
                 insufficientCost?.Invoke(selectedTower);
-                placementFailed?.Invoke(hoveredCell);
+                placementFailed?.Invoke(hoveredTile);
                 return false;
             }
 
-            if (!SpendCost(selectedTower))
-            {
-                insufficientCost?.Invoke(selectedTower);
-                placementFailed?.Invoke(hoveredCell);
-                return false;
-            }
-
-            Vector3 towerPosition = GetCellCenterWorld(hoveredCell);
+            Vector3 towerPosition = hoveredTile.GetBuildPosition();
             TowerBehaviour tower = Instantiate(
                 selectedTower.Prefab,
                 towerPosition,
@@ -265,165 +236,166 @@ namespace TD.Placement
 
             tower.Initialize(selectedTower);
             tower.transform.position = towerPosition;
-            placedTowers.Add(hoveredCell, tower);
+
+            if (!hoveredTile.PlaceTower(tower))
+            {
+                Destroy(tower.gameObject);
+                placementFailed?.Invoke(hoveredTile);
+                return false;
+            }
+
+            if (!SpendCost(selectedTower))
+            {
+                hoveredTile.ClearTower();
+                Destroy(tower.gameObject);
+                insufficientCost?.Invoke(selectedTower);
+                placementFailed?.Invoke(hoveredTile);
+                return false;
+            }
+
+            placedTowers[hoveredTile] = tower;
             RefreshInstalledTowerCount();
-
-            towerPlaced?.Invoke(tower, hoveredCell);
+            towerPlaced?.Invoke(tower, hoveredTile);
             DeselectTower();
-
             return true;
         }
 
-        private void UpdateHoveredCell()
+        private void UpdateHoveredTile()
         {
-            bool hasNextCell = TryGetCellUnderMouse(out Vector3Int nextCell);
-            if (hasHoveredCell && hasNextCell && hoveredCell == nextCell)
+            PlacementTile nextTile = TryGetTileUnderMouse();
+            if (hoveredTile == nextTile)
             {
-                RefreshHoveredCellOverlay();
+                RefreshHoveredTile();
                 return;
             }
 
             ClearHover();
-
-            if (!hasNextCell)
-            {
-                return;
-            }
-
-            hoveredCell = nextCell;
-            hasHoveredCell = true;
-            RefreshHoveredCellOverlay();
+            hoveredTile = nextTile;
+            RefreshHoveredTile();
         }
 
-        private bool TryGetCellUnderMouse(out Vector3Int cell)
+        private PlacementTile TryGetTileUnderMouse()
         {
-            cell = default(Vector3Int);
-
             if (worldCamera == null || Mouse.current == null)
             {
-                return false;
+                return null;
             }
 
-            Vector2 mousePos = Mouse.current.position.ReadValue();
-            Vector3 screenPosition = new Vector3(mousePos.x, mousePos.y, GetCameraWorldDistance());
-            Vector3 mouseWorld = worldCamera.ScreenToWorldPoint(screenPosition);
+            Vector2 mousePosition = Mouse.current.position.ReadValue();
+            Vector3 screenPosition = new Vector3(mousePosition.x, mousePosition.y, GetCameraWorldDistance());
+            Vector3 worldPosition = worldCamera.ScreenToWorldPoint(screenPosition);
+            Collider2D hit = Physics2D.OverlapPoint(worldPosition, placementTileLayer);
 
-            if (placementGrid != null)
-            {
-                cell = placementGrid.WorldToCell(mouseWorld);
-                return true;
-            }
-
-            if (buildableTilemap != null)
-            {
-                cell = buildableTilemap.WorldToCell(mouseWorld);
-                return true;
-            }
-
-            return false;
+            return hit != null ? hit.GetComponentInParent<PlacementTile>() : null;
         }
 
-        private static bool IsCancelPressed()
+        private void RefreshHoveredTile()
         {
-            return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-        }
-
-        private void RefreshHoveredCellOverlay()
-        {
-            if (!hasHoveredCell || placementOverlayTilemap == null)
+            if (hoveredTile == null || selectedTower == null)
             {
                 return;
             }
 
-            bool canPlace = CanPlaceAtCell(hoveredCell);
-            placementOverlayTilemap.SetTile(hoveredCell, canPlace ? buildableHoverTile : blockedHoverTile);
-            placementOverlayTilemap.SetColor(hoveredCell, canPlace ? buildableHoverColor : blockedHoverColor);
+            hoveredTile.SetHover(CanPlaceAtTile(hoveredTile));
         }
 
         private void ClearHover()
         {
-            if (hasHoveredCell && placementOverlayTilemap != null)
+            if (hoveredTile != null)
             {
-                placementOverlayTilemap.SetTile(hoveredCell, null);
+                hoveredTile.ClearHover();
             }
 
-            hasHoveredCell = false;
-            hoveredCell = default(Vector3Int);
+            hoveredTile = null;
             HideRangeIndicator();
         }
 
         private void ClearSelectionVisuals()
         {
             ClearHover();
-            SetPreviewVisible(false);
             DestroyPreview();
             HideRangeIndicator();
         }
 
-        private void UpdatePreview()
+        private void CreatePreview(TowerData data)
         {
-            if (!showTowerPreview || selectedTower == null || selectedTower.Prefab == null)
-            {
-                SetPreviewVisible(false);
-                return;
-            }
-
-            EnsurePreview();
-
-            if (previewTower == null)
-            {
-                return;
-            }
-
-            SetPreviewVisible(hasHoveredCell);
-
-            if (!hasHoveredCell)
-            {
-                return;
-            }
-
-            bool canPlace = CanPlaceAtCell(hoveredCell);
-            previewTower.transform.position = GetCellCenterWorld(hoveredCell);
-            SetPreviewColor(canPlace ? validPreviewColor : invalidPreviewColor);
-        }
-
-        private void EnsurePreview()
-        {
-            if (previewTower != null && previewData == selectedTower)
-            {
-                return;
-            }
-
             DestroyPreview();
-            previewData = selectedTower;
+            previewData = data;
 
-            if (previewData == null || previewData.Prefab == null)
+            if (!showTowerPreview || data == null)
             {
                 return;
             }
 
-            previewTower = Instantiate(previewData.Prefab);
-            previewTower.name = $"{previewData.TowerName}_Preview";
-            previewRenderers = previewTower.GetComponentsInChildren<SpriteRenderer>();
-            previewColliders = previewTower.GetComponentsInChildren<Collider2D>();
-
-            foreach (Collider2D previewCollider in previewColliders)
+            GameObject sourcePrefab = data.PreviewPrefab;
+            if (sourcePrefab == null && data.Prefab != null)
             {
-                if (previewCollider != null)
+                sourcePrefab = data.Prefab.gameObject;
+
+                if (!loggedMissingPreviewPrefab)
                 {
-                    previewCollider.enabled = false;
+                    Debug.LogWarning($"TowerData '{data.TowerName}' has no previewPrefab. Using tower prefab as preview.");
+                    loggedMissingPreviewPrefab = true;
                 }
             }
 
+            if (sourcePrefab == null)
+            {
+                return;
+            }
+
+            previewObject = Instantiate(sourcePrefab, transform);
+            previewObject.name = $"{data.TowerName}_Preview";
+            DisablePreviewGameplayComponents(previewObject);
+
+            previewRenderers = previewObject.GetComponentsInChildren<SpriteRenderer>(true);
+            ApplyPreviewSortingOrder();
             SetPreviewColor(validPreviewColor);
+            HidePreview();
         }
 
-        private void SetPreviewVisible(bool visible)
+        private void UpdatePreview()
         {
-            if (previewTower != null)
+            if (!showTowerPreview || selectedTower == null || hoveredTile == null)
             {
-                previewTower.gameObject.SetActive(visible);
+                HidePreview();
+                return;
             }
+
+            if (previewObject == null || previewData != selectedTower)
+            {
+                CreatePreview(selectedTower);
+            }
+
+            if (previewObject == null)
+            {
+                return;
+            }
+
+            bool canPlace = CanPlaceAtTile(hoveredTile);
+            previewObject.transform.position = hoveredTile.GetBuildPosition();
+            SetPreviewColor(canPlace ? validPreviewColor : invalidPreviewColor);
+            previewObject.SetActive(true);
+        }
+
+        private void HidePreview()
+        {
+            if (previewObject != null)
+            {
+                previewObject.SetActive(false);
+            }
+        }
+
+        private void DestroyPreview()
+        {
+            if (previewObject != null)
+            {
+                Destroy(previewObject);
+            }
+
+            previewObject = null;
+            previewData = null;
+            previewRenderers = null;
         }
 
         private void SetPreviewColor(Color color)
@@ -434,7 +406,6 @@ namespace TD.Placement
             }
 
             color.a = previewAlpha;
-
             foreach (SpriteRenderer previewRenderer in previewRenderers)
             {
                 if (previewRenderer != null)
@@ -444,22 +415,57 @@ namespace TD.Placement
             }
         }
 
-        private void DestroyPreview()
+        private void ApplyPreviewSortingOrder()
         {
-            if (previewTower != null)
+            if (previewRenderers == null)
             {
-                Destroy(previewTower.gameObject);
+                return;
             }
 
-            previewTower = null;
-            previewData = null;
-            previewRenderers = null;
-            previewColliders = null;
+            foreach (SpriteRenderer previewRenderer in previewRenderers)
+            {
+                if (previewRenderer != null)
+                {
+                    previewRenderer.sortingOrder = previewSortingOrder;
+                }
+            }
+        }
+
+        private static void DisablePreviewGameplayComponents(GameObject preview)
+        {
+            if (preview == null)
+            {
+                return;
+            }
+
+            foreach (Collider2D previewCollider in preview.GetComponentsInChildren<Collider2D>(true))
+            {
+                if (previewCollider != null)
+                {
+                    previewCollider.enabled = false;
+                }
+            }
+
+            foreach (Rigidbody2D previewRigidbody in preview.GetComponentsInChildren<Rigidbody2D>(true))
+            {
+                if (previewRigidbody != null)
+                {
+                    previewRigidbody.simulated = false;
+                }
+            }
+
+            foreach (MonoBehaviour behaviour in preview.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour != null)
+                {
+                    behaviour.enabled = false;
+                }
+            }
         }
 
         private void UpdateRangeIndicator()
         {
-            if (!showRangeIndicator || selectedTower == null || !hasHoveredCell)
+            if (!showRangeIndicator || selectedTower == null || hoveredTile == null)
             {
                 HideRangeIndicator();
                 return;
@@ -478,9 +484,9 @@ namespace TD.Placement
                 return;
             }
 
-            bool canPlace = CanPlaceAtCell(hoveredCell);
+            bool canPlace = CanPlaceAtTile(hoveredTile);
             indicator.SetValidState(canPlace);
-            indicator.Show(GetCellCenterWorld(hoveredCell), attackRange);
+            indicator.Show(hoveredTile.GetBuildPosition(), attackRange);
         }
 
         private RangeIndicator EnsureRangeIndicator()
@@ -525,19 +531,14 @@ namespace TD.Placement
             }
         }
 
-        public bool CanPlaceAtCell(Vector3Int cell)
+        public bool CanPlaceAtTile(PlacementTile tile)
         {
-            if (selectedTower == null || selectedTower.Prefab == null)
-            {
-                return false;
-            }
+            return CanUseTileForPlacement(tile) && CanAfford(selectedTower);
+        }
 
-            if (buildableTilemap == null || !buildableTilemap.HasTile(cell))
-            {
-                return false;
-            }
-
-            return !placedTowers.ContainsKey(cell);
+        private bool CanUseTileForPlacement(PlacementTile tile)
+        {
+            return selectedTower != null && selectedTower.Prefab != null && tile != null && tile.CanPlace();
         }
 
         public bool CanAffordSelectedTower()
@@ -587,19 +588,21 @@ namespace TD.Placement
             return provider.SpendCost(towerData.Cost);
         }
 
-        public bool TryGetPlacedTower(Vector3Int cell, out TowerBehaviour tower)
+        public bool TryGetPlacedTower(PlacementTile tile, out TowerBehaviour tower)
         {
-            return placedTowers.TryGetValue(cell, out tower);
+            tower = null;
+            return tile != null && placedTowers.TryGetValue(tile, out tower);
         }
 
-        public bool RemovePlacedTower(Vector3Int cell, bool destroyTower = true)
+        public bool RemovePlacedTower(PlacementTile tile, bool destroyTower = true)
         {
-            if (!placedTowers.TryGetValue(cell, out TowerBehaviour tower))
+            if (tile == null || !placedTowers.TryGetValue(tile, out TowerBehaviour tower))
             {
                 return false;
             }
 
-            placedTowers.Remove(cell);
+            placedTowers.Remove(tile);
+            tile.ClearTower();
             RefreshInstalledTowerCount();
 
             if (destroyTower && tower != null)
@@ -607,18 +610,8 @@ namespace TD.Placement
                 Destroy(tower.gameObject);
             }
 
-            RefreshHoveredCellOverlay();
+            RefreshHoveredTile();
             return true;
-        }
-
-        private Vector3 GetCellCenterWorld(Vector3Int cell)
-        {
-            if (placementGrid != null)
-            {
-                return placementGrid.GetCellCenterWorld(cell);
-            }
-
-            return buildableTilemap != null ? buildableTilemap.GetCellCenterWorld(cell) : Vector3.zero;
         }
 
         private float GetCameraWorldDistance()
@@ -626,28 +619,6 @@ namespace TD.Placement
             return worldCamera != null && !worldCamera.orthographic
                 ? worldCamera.nearClipPlane
                 : Mathf.Abs(worldCamera != null ? worldCamera.transform.position.z : 0f);
-        }
-
-        private void EnsureOverlayTiles()
-        {
-            if (buildableHoverTile == null)
-            {
-                buildableHoverTile = CreateOverlayTile(buildableHoverColor);
-            }
-
-            if (blockedHoverTile == null)
-            {
-                blockedHoverTile = CreateOverlayTile(blockedHoverColor);
-            }
-        }
-
-        private static Tile CreateOverlayTile(Color color)
-        {
-            Tile tile = ScriptableObject.CreateInstance<Tile>();
-            tile.sprite = GetGeneratedOverlaySprite();
-            tile.color = color;
-            tile.flags = TileFlags.None;
-            return tile;
         }
 
         private void RefreshInstalledTowerCount()
@@ -687,31 +658,12 @@ namespace TD.Placement
             }
         }
 
-        private static Sprite generatedOverlaySprite;
-        private static Sprite generatedCircleSprite;
-
-        private static Sprite GetGeneratedOverlaySprite()
+        private static bool IsCancelPressed()
         {
-            if (generatedOverlaySprite != null)
-            {
-                return generatedOverlaySprite;
-            }
-
-            Texture2D texture = new Texture2D(1, 1)
-            {
-                filterMode = FilterMode.Point
-            };
-            texture.SetPixel(0, 0, Color.white);
-            texture.Apply();
-
-            generatedOverlaySprite = Sprite.Create(
-                texture,
-                new Rect(0f, 0f, 1f, 1f),
-                new Vector2(0.5f, 0.5f),
-                1f);
-
-            return generatedOverlaySprite;
+            return Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         }
+
+        private static Sprite generatedCircleSprite;
 
         private static Sprite GetGeneratedCircleSprite()
         {
