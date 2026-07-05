@@ -1,22 +1,52 @@
 fileFormatVersion: 2
-guid: 9d7a187b2107d3945b493e6cab4a595d
+guid: 49fd3bc4fb2a248479a568c9e3907bd3
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1515134823594722529
-    second: towers_0
+      213: -5298733053938180300
+    second: swordManAnim_0
   - first:
-      213: -3446471830066921269
-    second: towers_1
+      213: 364896974685270191
+    second: swordManAnim_1
   - first:
-      213: 1704872509302500955
-    second: towers_2
+      213: -6697023329103778212
+    second: swordManAnim_2
   - first:
-      213: -3964856179284347504
-    second: towers_3
+      213: -1991568432306468015
+    second: swordManAnim_3
   - first:
-      213: -7891793613738847529
-    second: towers_4
+      213: 4260192965386312857
+    second: swordManAnim_4
+  - first:
+      213: -2438007454123093430
+    second: swordManAnim_5
+  - first:
+      213: 8814589839293308361
+    second: swordManAnim_6
+  - first:
+      213: -5842889724806366458
+    second: swordManAnim_7
+  - first:
+      213: 3885110005937775677
+    second: swordManAnim_8
+  - first:
+      213: -5120912577778557658
+    second: swordManAnim_9
+  - first:
+      213: 467975584171008788
+    second: swordManAnim_10
+  - first:
+      213: -2355682116975232010
+    second: swordManAnim_11
+  - first:
+      213: -2457196392298024553
+    second: swordManAnim_12
+  - first:
+      213: 126322963657053779
+    second: swordManAnim_13
+  - first:
+      213: -5525161218049391450
+    second: swordManAnim_14
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -112,13 +142,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: towers_0
+      name: swordManAnim_0
       rect:
         serializedVersion: 2
-        x: 21
-        y: 418
-        width: 400
-        height: 420
+        x: 67
+        y: 496
+        width: 357
+        height: 419
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -127,52 +157,30 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f1bffccc7e829fae0800000000000000
-      internalID: -1515134823594722529
+      spriteID: 43fd4608c5e1776b0800000000000000
+      internalID: -5298733053938180300
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: towers_2
+      name: swordManAnim_3
       rect:
         serializedVersion: 2
-        x: 566
-        y: 419
-        width: 416
-        height: 382
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+        x: 589
+        y: 496
+        width: 909
+        height: 395
+      alignment: 4
+      pivot: {x: 0, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b5eed40b38ce8a710800000000000000
-      internalID: 1704872509302500955
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: towers_3
-      rect:
-        serializedVersion: 2
-        x: 1128
-        y: 415
-        width: 347
-        height: 449
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0957e38cf400af8c0800000000000000
-      internalID: -3964856179284347504
+      spriteID: 15bcd7600178c54e0800000000000000
+      internalID: -1991568432306468015
       vertices: []
       indices: 
       edges: []
@@ -181,7 +189,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: cfc96f87ead920e448c8b15d622f3c41
+    spriteID: 6f83a97bb9304d345863cfa523011c5c
     internalID: 0
     vertices: []
     indices: 
@@ -191,11 +199,21 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      towers_0: -1515134823594722529
-      towers_1: -3446471830066921269
-      towers_2: 1704872509302500955
-      towers_3: -3964856179284347504
-      towers_4: -7891793613738847529
+      swordManAnim_0: -5298733053938180300
+      swordManAnim_1: 364896974685270191
+      swordManAnim_10: 467975584171008788
+      swordManAnim_11: -2355682116975232010
+      swordManAnim_12: -2457196392298024553
+      swordManAnim_13: 126322963657053779
+      swordManAnim_14: -5525161218049391450
+      swordManAnim_2: -6697023329103778212
+      swordManAnim_3: -1991568432306468015
+      swordManAnim_4: 4260192965386312857
+      swordManAnim_5: -2438007454123093430
+      swordManAnim_6: 8814589839293308361
+      swordManAnim_7: -5842889724806366458
+      swordManAnim_8: 3885110005937775677
+      swordManAnim_9: -5120912577778557658
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

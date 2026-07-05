@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using TD.Enemy;
 using UnityEngine;
 
@@ -8,7 +10,11 @@ namespace TD.Tower
         [SerializeField] private TowerData data;
         [SerializeField] private LayerMask enemyLayer = Physics2D.DefaultRaycastLayers;
         [SerializeField] private Transform firePoint;
+        [SerializeField] private TowerAnimationController animationController;
         [SerializeField] private bool attackEnabled = true;
+        [SerializeField] private bool immediateDamage = true;
+        [SerializeField] private float attackHitDelay = 0.1f;
+        [SerializeField] private bool logMeleeHitCount;
         [SerializeField] private int upgradeLevel;
 
         private float attackTimer;
@@ -16,9 +22,18 @@ namespace TD.Tower
         public TowerData Data => data;
         public int UpgradeLevel => upgradeLevel;
 
+        private void Awake()
+        {
+            if (animationController == null)
+            {
+                animationController = GetComponentInChildren<TowerAnimationController>();
+            }
+        }
+
         private void Reset()
         {
             firePoint = transform;
+            animationController = GetComponentInChildren<TowerAnimationController>();
         }
 
         private void Update()
@@ -27,21 +42,28 @@ namespace TD.Tower
             {
                 return;
             }
+            // Debug.Log("attack Timer");
 
             attackTimer -= Time.deltaTime;
             if (attackTimer > 0f)
             {
                 return;
             }
-
+            
+            // Debug.Log("Find Target");
             EnemyHealth target = FindTarget();
+            // Debug.Log("Target: " + (target != null ? target.name : "null"));
             if (target == null)
             {
+                animationController?.PlayIdle();
                 return;
             }
 
-            Attack(target);
-            attackTimer = GetAttackCooldown();
+            Debug.Log("Attacking");
+            if (Attack(target))
+            {
+                attackTimer = GetAttackCooldown();
+            }
         }
 
         public void Initialize(TowerData towerData)
@@ -140,30 +162,185 @@ namespace TD.Tower
             }
         }
 
-        private void Attack(EnemyHealth target)
+        private bool Attack(EnemyHealth target)
         {
             if (target == null || data == null)
             {
-                return;
+                return false;
             }
 
             switch (data.AttackMode)
             {
                 case AttackMode.Projectile:
-                    FireProjectile(target);
-                    break;
+                    return AttackSingleTarget(target, AttackMode.Projectile);
                 case AttackMode.Area:
-                    AttackArea(target.transform.position);
-                    break;
+                    return AttackSingleTarget(target, AttackMode.Area);
                 case AttackMode.Slow:
-                    ApplySlow(target);
-                    target.TakeDamage(data.Damage);
-                    break;
+                    return AttackSingleTarget(target, AttackMode.Slow);
                 case AttackMode.Melee:
                 default:
-                    target.TakeDamage(data.Damage);
+                    return AttackMelee(target);
+            }
+        }
+
+        private bool AttackSingleTarget(EnemyHealth target, AttackMode attackMode)
+        {
+            if (target == null || target.IsDead || data == null)
+            {
+                return false;
+            }
+
+            Vector3 targetPosition = target.transform.position;
+            FaceAndPlayAttack(targetPosition);
+
+            if (immediateDamage || attackHitDelay <= 0f)
+            {
+                ApplySingleTargetAttack(target, attackMode, targetPosition);
+            }
+            else
+            {
+                StartCoroutine(DelayedSingleTargetAttack(target, attackMode, targetPosition));
+            }
+
+            return true;
+        }
+
+        private IEnumerator DelayedSingleTargetAttack(EnemyHealth target, AttackMode attackMode, Vector3 fallbackPosition)
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, attackHitDelay));
+            ApplySingleTargetAttack(target, attackMode, fallbackPosition);
+        }
+
+        private void ApplySingleTargetAttack(EnemyHealth target, AttackMode attackMode, Vector3 fallbackPosition)
+        {
+            switch (attackMode)
+            {
+                case AttackMode.Projectile:
+                    if (target != null && !target.IsDead)
+                    {
+                        FireProjectile(target);
+                    }
+                    break;
+                case AttackMode.Area:
+                    AttackArea(target != null && !target.IsDead ? target.transform.position : fallbackPosition);
+                    break;
+                case AttackMode.Slow:
+                    if (target != null && !target.IsDead)
+                    {
+                        ApplySlow(target);
+                        target.TakeDamage(data.Damage);
+                    }
                     break;
             }
+        }
+
+        private bool AttackMelee(EnemyHealth facingTarget)
+        {
+            Debug.Log("Attacking melee");
+            if (data == null || data.AttackRange <= 0f)
+            {
+                return false;
+            }
+
+            List<EnemyHealth> meleeTargets = CollectMeleeTargets();
+            if (meleeTargets.Count == 0)
+            {
+                return false;
+            }
+
+            EnemyHealth directionTarget = facingTarget != null && meleeTargets.Contains(facingTarget)
+                ? facingTarget
+                : meleeTargets[0];
+
+            if (directionTarget != null)
+            {
+                FaceAndPlayAttack(directionTarget.transform.position);
+            }
+
+            if (immediateDamage || attackHitDelay <= 0f)
+            {
+                DamageMeleeTargets(meleeTargets);
+            }
+            else
+            {
+                StartCoroutine(DelayedMeleeAttack());
+            }
+
+            return true;
+        }
+
+        private IEnumerator DelayedMeleeAttack()
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, attackHitDelay));
+            DamageMeleeTargets(CollectMeleeTargets());
+        }
+
+        private List<EnemyHealth> CollectMeleeTargets()
+        {
+            Collider2D[] enemyHits = Physics2D.OverlapCircleAll(
+                transform.position,
+                data.AttackRange,
+                enemyLayer);
+
+            HashSet<EnemyHealth> damagedEnemies = new HashSet<EnemyHealth>();
+            List<EnemyHealth> meleeTargets = new List<EnemyHealth>();
+
+            for (int i = 0; i < enemyHits.Length; i++)
+            {
+                Collider2D hit = enemyHits[i];
+                if (hit == null)
+                {
+                    continue;
+                }
+
+                EnemyHealth enemy = hit.GetComponentInParent<EnemyHealth>();
+                if (enemy == null || enemy.IsDead || !damagedEnemies.Add(enemy))
+                {
+                    continue;
+                }
+
+                meleeTargets.Add(enemy);
+            }
+
+            return meleeTargets;
+        }
+
+        private void DamageMeleeTargets(List<EnemyHealth> meleeTargets)
+        {
+            if (meleeTargets == null)
+            {
+                return;
+            }
+
+            int hitCount = 0;
+            for (int i = 0; i < meleeTargets.Count; i++)
+            {
+                EnemyHealth enemy = meleeTargets[i];
+                if (enemy == null || enemy.IsDead)
+                {
+                    continue;
+                }
+
+                enemy.TakeDamage(data.Damage);
+                hitCount++;
+            }
+
+            if (logMeleeHitCount)
+            {
+                Debug.Log($"Melee attack hit {hitCount} enemies.");
+            }
+        }
+
+        private void FaceAndPlayAttack(Vector3 targetPosition)
+        {
+            Debug.Log("Face and Play Attack");
+            if (animationController == null)
+            {
+                return;
+            }
+
+            animationController.FaceTarget(targetPosition);
+            animationController.PlayAttack();
         }
 
         private void FireProjectile(EnemyHealth target)

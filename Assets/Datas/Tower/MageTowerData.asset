@@ -21,7 +21,8 @@ MonoBehaviour:
   targetPriority: 1
   cost: 120
   upgradeCost: 100
-  prefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
+  prefab: {fileID: 4343967645554337613, guid: 4d7f1fd87d63e5c4f831df0515bc798c, type: 3}
+  previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   icon: {fileID: 0}
   description: Area tower for grouped enemies.

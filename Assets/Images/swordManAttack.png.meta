@@ -1,22 +1,22 @@
 fileFormatVersion: 2
-guid: 9d7a187b2107d3945b493e6cab4a595d
+guid: 92438aa0ab551ec4cb61d0d98d2fb965
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1515134823594722529
-    second: towers_0
+      213: 102752324532254585
+    second: swordManAttack2_0
   - first:
-      213: -3446471830066921269
-    second: towers_1
+      213: -1357764363639045986
+    second: swordManAttack2_1
   - first:
-      213: 1704872509302500955
-    second: towers_2
+      213: 6941181961290444518
+    second: swordManAttack2_2
   - first:
-      213: -3964856179284347504
-    second: towers_3
+      213: 3973202636781742074
+    second: swordManAttack2_3
   - first:
-      213: -7891793613738847529
-    second: towers_4
+      213: 1368424834759644917
+    second: swordManAttack2_4
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -112,13 +112,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: towers_0
+      name: swordManAttack2_1
       rect:
         serializedVersion: 2
-        x: 21
-        y: 418
-        width: 400
-        height: 420
+        x: 5
+        y: 489
+        width: 1499
+        height: 393
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -127,52 +127,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f1bffccc7e829fae0800000000000000
-      internalID: -1515134823594722529
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: towers_2
-      rect:
-        serializedVersion: 2
-        x: 566
-        y: 419
-        width: 416
-        height: 382
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b5eed40b38ce8a710800000000000000
-      internalID: 1704872509302500955
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: towers_3
-      rect:
-        serializedVersion: 2
-        x: 1128
-        y: 415
-        width: 347
-        height: 449
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0957e38cf400af8c0800000000000000
-      internalID: -3964856179284347504
+      spriteID: e904c984180482de0800000000000000
+      internalID: -1357764363639045986
       vertices: []
       indices: 
       edges: []
@@ -181,7 +137,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: cfc96f87ead920e448c8b15d622f3c41
+    spriteID: 0ea985c46f1564c41a419167cf7f7cc0
     internalID: 0
     vertices: []
     indices: 
@@ -191,11 +147,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      towers_0: -1515134823594722529
-      towers_1: -3446471830066921269
-      towers_2: 1704872509302500955
-      towers_3: -3964856179284347504
-      towers_4: -7891793613738847529
+      swordManAttack2_0: 102752324532254585
+      swordManAttack2_1: -1357764363639045986
+      swordManAttack2_2: 6941181961290444518
+      swordManAttack2_3: 3973202636781742074
+      swordManAttack2_4: 1368424834759644917
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 5837836412372924514}
   - component: {fileID: 9050796131171625272}
   - component: {fileID: 4343967645554337613}
+  - component: {fileID: 7148455178808479462}
+  - component: {fileID: 4516844397528260402}
   m_Layer: 0
   m_Name: PF_SwordTower
   m_TagString: Untagged
@@ -28,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.18015, y: 0.0191, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.3, y: 0.3, z: 0.3}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -82,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -1515134823594722529, guid: 9d7a187b2107d3945b493e6cab4a595d, type: 3}
+  m_Sprite: {fileID: -5298733053938180300, guid: 49fd3bc4fb2a248479a568c9e3907bd3, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -109,5 +111,54 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 51
   firePoint: {fileID: 0}
+  animationController: {fileID: 0}
   attackEnabled: 1
+  immediateDamage: 1
+  attackHitDelay: 0.1
+  logMeleeHitCount: 0
   upgradeLevel: 0
+--- !u!95 &7148455178808479462
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212203950003077235}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: f4b3f7f42fac69c4296b057a489d5b95, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4516844397528260402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212203950003077235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eb7de914fd8421c84b5175e19f8432a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TD.Tower.TowerAnimationController
+  animator: {fileID: 7148455178808479462}
+  spriteRenderer: {fileID: 9050796131171625272}
+  attackTriggerName: Attack
+  directionParamName: Direction
+  isAttackingParamName: IsAttacking
+  useDirectionParam: 1
+  useIsAttackingParam: 1
+  resetAttackTriggerBeforePlay: 1
+  allowRestartWhileAttacking: 1
+  autoReturnToIdle: 1
+  attackStateDuration: 0.35

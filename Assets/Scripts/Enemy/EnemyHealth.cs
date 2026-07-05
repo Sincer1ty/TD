@@ -51,6 +51,9 @@ namespace TD.Enemy
             currentHp = Mathf.Max(0f, currentHp - damage);
             Debug.Log("currentHp: " + currentHp + "");
             NotifyHealthChanged();
+            
+            SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+            spriteRenderer.color = Color.Lerp(spriteRenderer.color, Color.red, currentHp / maxHp);
 
             if (currentHp <= 0f)
             {
