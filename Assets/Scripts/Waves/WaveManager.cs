@@ -44,6 +44,7 @@ namespace TD.Waves
         private bool waveRewardGranted;
         private bool allWavesCleared;
         private bool isGameOver;
+        private bool bossReachedBase;
         private string currentState = "Ready";
 
         public UnityEvent<int> OnWaveStarted => onWaveStarted;
@@ -59,6 +60,7 @@ namespace TD.Waves
         public int AliveEnemyCount => aliveEnemyCount;
         public bool IsWaveRunning => isWaveRunning;
         public bool AllWavesCleared => allWavesCleared;
+        public bool BossReachedBase => bossReachedBase;
         public string CurrentState => currentState;
 
         private void Awake()
@@ -320,6 +322,21 @@ namespace TD.Waves
 
         private void HandleEnemyReachedBase(EnemyController enemy, int damage)
         {
+            if (enemy != null && enemy.IsBoss)
+            {
+                bossReachedBase = true;
+                Log($"Boss reached base during wave {currentWaveIndex}: {enemy.Data?.EnemyName ?? enemy.name}");
+
+                if (lifeManager != null)
+                {
+                    lifeManager.ForceGameOver("Boss reached the base.");
+                }
+                else if (gameStateManager != null)
+                {
+                    gameStateManager.SetGameOver();
+                }
+            }
+
             UnwireEnemy(enemy);
             RegisterEnemyRemoved();
         }
@@ -335,7 +352,7 @@ namespace TD.Waves
 
         private void TryClearWave()
         {
-            if (!CanProgressWaves() || !isWaveRunning || waveRewardGranted)
+            if (!CanProgressWaves() || bossReachedBase || !isWaveRunning || waveRewardGranted)
             {
                 return;
             }
@@ -352,6 +369,12 @@ namespace TD.Waves
         {
             if (allWavesCleared)
             {
+                return;
+            }
+
+            if (bossReachedBase)
+            {
+                Log("Skipped game clear because the boss reached the base.");
                 return;
             }
 
@@ -380,6 +403,7 @@ namespace TD.Waves
             aliveEnemyCount = 0;
             allEnemiesSpawned = false;
             waveRewardGranted = false;
+            bossReachedBase = false;
             NotifyRemainingEnemiesChanged();
         }
 

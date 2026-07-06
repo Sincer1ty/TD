@@ -35,6 +35,9 @@ namespace TD.Enemy
         [SerializeField] private bool stopSpawningOnGameOver = true;
         [SerializeField] private bool removeAliveEnemiesOnGameOver;
 
+        [Header("Debug")]
+        [SerializeField] private bool debugLog;
+
         [SerializeField] private UnityEvent<EnemyController> enemySpawned;
         [SerializeField] private UnityEvent<EnemyController, int> enemyKilled;
         [SerializeField] private UnityEvent<EnemyController, int> enemyReachedBase;
@@ -193,7 +196,19 @@ namespace TD.Enemy
         private void HandleEnemyReachedBase(EnemyController enemy, int damage)
         {
             enemyReachedBase?.Invoke(enemy, damage);
-            if (lifeManager != null)
+            if (enemy != null && enemy.IsBoss)
+            {
+                if (debugLog)
+                {
+                    Debug.Log($"Boss reached the base: {enemy.Data?.EnemyName ?? enemy.name}. Forcing GameOver.");
+                }
+
+                if (lifeManager != null)
+                {
+                    lifeManager.ForceGameOver("Boss reached the base.");
+                }
+            }
+            else if (lifeManager != null)
             {
                 lifeManager.TakeDamage(damage);
             }

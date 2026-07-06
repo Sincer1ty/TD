@@ -1,5 +1,6 @@
 using TD.UI;
 using TD.Tower;
+using TD.Gameplay;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -13,6 +14,7 @@ namespace TD.Placement
     {
         [SerializeField] private Camera worldCamera;
         [SerializeField] private TowerPlacementController placementController;
+        [SerializeField] private LifeManager lifeManager;
         [FormerlySerializedAs("towerLayer")]
         [SerializeField] private LayerMask placementTileLayer = ~0;
         [SerializeField] private bool allowSelection = true;
@@ -48,8 +50,14 @@ namespace TD.Placement
             SubscribeTowerUpgradeUi();
         }
 
+        private void OnEnable()
+        {
+            SubscribeLifeManager();
+        }
+
         private void OnDisable()
         {
+            UnsubscribeLifeManager();
             UnsubscribeTowerUpgradeUi();
             DeselectTower();
         }
@@ -327,6 +335,33 @@ namespace TD.Placement
             {
                 towerUpgradeUI.OnTowerSold.RemoveListener(HandleSelectedTowerSold);
             }
+        }
+
+        private void SubscribeLifeManager()
+        {
+            if (lifeManager == null)
+            {
+                lifeManager = FindFirstObjectByType<LifeManager>();
+            }
+
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+                lifeManager.OnGameOver.AddListener(HandleGameOver);
+            }
+        }
+
+        private void UnsubscribeLifeManager()
+        {
+            if (lifeManager != null)
+            {
+                lifeManager.OnGameOver.RemoveListener(HandleGameOver);
+            }
+        }
+
+        private void HandleGameOver()
+        {
+            SetSelectionEnabled(false);
         }
 
         private void HandleSelectedTowerSold()

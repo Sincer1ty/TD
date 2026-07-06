@@ -17,11 +17,13 @@ namespace TD.Gameplay
 
         private bool isGameOver;
         private bool gameOverInvoked;
+        private string lastGameOverReason;
 
         public UnityEvent<int> OnLifeChanged => onLifeChanged;
         public UnityEvent OnGameOver => onGameOver;
         public int CurrentLife => currentLife;
         public bool IsGameOver => isGameOver;
+        public string LastGameOverReason => lastGameOverReason;
 
         private void Awake()
         {
@@ -41,6 +43,7 @@ namespace TD.Gameplay
             currentLife = Mathf.Max(0, startingLife);
             isGameOver = currentLife <= 0;
             gameOverInvoked = false;
+            lastGameOverReason = string.Empty;
             onLifeChanged?.Invoke(currentLife);
 
             if (isGameOver)
@@ -62,7 +65,7 @@ namespace TD.Gameplay
 
             if (currentLife <= 0)
             {
-                TriggerGameOver();
+                TriggerGameOver("Life reached 0.");
             }
         }
 
@@ -87,19 +90,24 @@ namespace TD.Gameplay
             return isGameOver || currentLife <= 0;
         }
 
-        private void TriggerGameOver()
+        public void ForceGameOver(string reason)
+        {
+            TriggerGameOver(reason, true);
+        }
+
+        private void TriggerGameOver(string reason = "Game Over", bool force = false)
         {
             if (gameOverInvoked)
             {
                 return;
             }
 
-            if (IsGameClear())
+            if (IsGameClear() && !force)
             {
                 return;
             }
 
-            if (isGameOver && currentLife > 0)
+            if (!force && isGameOver && currentLife > 0)
             {
                 return;
             }
@@ -111,8 +119,9 @@ namespace TD.Gameplay
 
             isGameOver = true;
             gameOverInvoked = true;
+            lastGameOverReason = string.IsNullOrWhiteSpace(reason) ? "Game Over" : reason;
 
-            Debug.Log("Game Over");
+            Debug.Log($"Game Over: {lastGameOverReason}");
             onGameOver?.Invoke();
 
             if (pauseTimeOnGameOver)

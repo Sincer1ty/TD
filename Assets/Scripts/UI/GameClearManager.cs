@@ -1,193 +1,156 @@
-using TD.Enemy;
 using TD.Gameplay;
-using TD.Placement;
 using TD.Waves;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace TD.UI
 {
     public class GameClearManager : MonoBehaviour
     {
-        [Header("UI")]
-        [SerializeField] private GameObject gameClearPanel;
-        [SerializeField] private GameObject gameOverPanel;
-        [SerializeField] private GameOverUI gameOverUI;
-        [SerializeField] private Button restartButton;
-        [SerializeField] private Button mainMenuButton;
-        [SerializeField] private Button quitButton;
-
         [Header("Scene")]
-        [SerializeField] private string gameSceneName = "GameScene";
-        [SerializeField] private string openingSceneName = "OpeningScene";
+        [SerializeField] private string endingSceneName = "EndingScene";
+        [SerializeField] private bool resetTimeScaleOnLoad = true;
 
         [Header("References")]
         [SerializeField] private WaveManager waveManager;
         [SerializeField] private LifeManager lifeManager;
         [SerializeField] private GameStateManager gameStateManager;
-        [SerializeField] private EnemySpawner enemySpawner;
-        [SerializeField] private TowerPlacementController towerPlacementController;
-        [SerializeField] private TowerSelectionController towerSelectionController;
 
-        [Header("Options")]
-        [SerializeField] private bool pauseOnGameClear = true;
-        [SerializeField] private bool removeAliveEnemiesOnGameClear;
+        [Header("Debug")]
         [SerializeField] private bool debugLog;
 
-        private bool isGameClear;
+        private bool isLoadingEndingScene;
+        private bool isGameCleared;
+        private GameObject persistedRoot;
 
         public bool IsGameClear()
         {
-            return isGameClear;
+            return isGameCleared;
         }
 
         private void Awake()
         {
             CacheReferences();
-            RegisterButtonEvents();
-            HideGameClear();
-
-            if (gameOverPanel != null)
-            {
-                gameOverPanel.SetActive(false);
-            }
         }
 
         private void OnEnable()
         {
             SubscribeWaveManager();
+            SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 
         private void OnDisable()
         {
             UnsubscribeWaveManager();
-            UnregisterButtonEvents();
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
         }
 
-        public void ShowGameClear()
+        public void LoadEndingScene()
         {
-            if (isGameClear)
+            if (!CanLoadEndingScene())
             {
                 return;
             }
 
-            CacheReferences();
-
-            if (lifeManager != null && lifeManager.IsDead())
-            {
-                Log("Ignored GameClear because player life is 0.");
-                return;
-            }
+            isLoadingEndingScene = true;
+            isGameCleared = true;
 
             if (gameStateManager != null && !gameStateManager.SetGameClear())
             {
-                Log("Ignored GameClear because GameStateManager rejected the state change.");
+                Log("EndingScene load canceled because GameStateManager rejected GameClear.");
+                isLoadingEndingScene = false;
+                isGameCleared = false;
                 return;
             }
 
-            isGameClear = true;
-            Log("GameClear state entered.");
-
-            StopGameProgress();
-            HideGameOver();
-
-            if (gameClearPanel != null)
+            if (resetTimeScaleOnLoad)
             {
-                gameClearPanel.SetActive(true);
-                Log("GameClearPanel shown.");
-            }
-            else
-            {
-                Debug.LogWarning("GameClearManager has no gameClearPanel assigned.", this);
+                Time.timeScale = 1f;
             }
 
-            if (pauseOnGameClear)
-            {
-                Time.timeScale = 0f;
-            }
-        }
+            Log($"Loading EndingScene: {endingSceneName}");
+            PersistThroughSceneLoad();
 
-        public void HideGameClear()
-        {
-            if (gameClearPanel != null)
+            try
             {
-                gameClearPanel.SetActive(false);
+                SceneManager.LoadScene(endingSceneName);
+            }
+            catch (System.Exception exception)
+            {
+                isLoadingEndingScene = false;
+                isGameCleared = false;
+                CleanupPersistedRoot();
+                Debug.LogWarning($"Failed to load EndingScene '{endingSceneName}': {exception.Message}", this);
             }
         }
 
-        public void RestartGame()
+        public bool CanLoadEndingScene()
         {
-            if (string.IsNullOrWhiteSpace(gameSceneName))
+            CacheReferences();
+
+            if (isLoadingEndingScene)
             {
-                Debug.LogWarning("GameClearManager cannot restart because gameSceneName is empty.", this);
+                Log("EndingScene load canceled because loading is already in progress.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(endingSceneName))
+            {
+                Debug.LogWarning("GameClearManager cannot load EndingScene because endingSceneName is empty.", this);
+                return false;
+            }
+
+            if (lifeManager != null && lifeManager.IsDead())
+            {
+                Log("EndingScene load canceled because player life is 0.");
+                return false;
+            }
+
+            if (gameStateManager != null && gameStateManager.IsGameOver())
+            {
+                Log("EndingScene load canceled because game state is GameOver.");
+                return false;
+            }
+
+            if (waveManager != null && waveManager.BossReachedBase)
+            {
+                Log("EndingScene load canceled because boss reached the base.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void HandleAllWavesCleared()
+        {
+            Log("Last wave clear detected.");
+            LoadEndingScene();
+        }
+
+        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != endingSceneName)
+            {
                 return;
             }
 
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(gameSceneName);
+            Log($"EndingScene load completed: {scene.name}");
+
+            CleanupPersistedRoot();
         }
 
-        public void GoToMainMenu()
+        private void PersistThroughSceneLoad()
         {
-            if (string.IsNullOrWhiteSpace(openingSceneName))
-            {
-                Debug.LogWarning("GameClearManager cannot load main menu because openingSceneName is empty.", this);
-                return;
-            }
-
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(openingSceneName);
+            persistedRoot = transform.root != null ? transform.root.gameObject : gameObject;
+            DontDestroyOnLoad(persistedRoot);
         }
 
-        public void QuitGame()
+        private void CleanupPersistedRoot()
         {
-            Time.timeScale = 1f;
-
-#if UNITY_EDITOR
-            EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
-        }
-
-        private void StopGameProgress()
-        {
-            if (enemySpawner != null)
+            if (persistedRoot != null)
             {
-                enemySpawner.StopSpawning(removeAliveEnemiesOnGameClear);
-            }
-
-            if (waveManager != null)
-            {
-                waveManager.HandleGameClear();
-            }
-
-            if (towerPlacementController != null)
-            {
-                towerPlacementController.SetPlacementInputEnabled(false);
-            }
-
-            if (towerSelectionController != null)
-            {
-                towerSelectionController.SetSelectionEnabled(false);
-            }
-        }
-
-        private void HideGameOver()
-        {
-            if (gameOverUI != null)
-            {
-                gameOverUI.Hide();
-            }
-
-            if (gameOverPanel != null)
-            {
-                gameOverPanel.SetActive(false);
+                Destroy(persistedRoot);
+                persistedRoot = null;
             }
         }
 
@@ -211,26 +174,6 @@ namespace TD.UI
             {
                 gameStateManager = FindFirstObjectByType<GameStateManager>();
             }
-
-            if (enemySpawner == null)
-            {
-                enemySpawner = FindFirstObjectByType<EnemySpawner>();
-            }
-
-            if (towerPlacementController == null)
-            {
-                towerPlacementController = FindFirstObjectByType<TowerPlacementController>();
-            }
-
-            if (towerSelectionController == null)
-            {
-                towerSelectionController = FindFirstObjectByType<TowerSelectionController>();
-            }
-
-            if (gameOverUI == null)
-            {
-                gameOverUI = FindFirstObjectByType<GameOverUI>(FindObjectsInactive.Include);
-            }
         }
 
         private void SubscribeWaveManager()
@@ -250,51 +193,6 @@ namespace TD.UI
             {
                 waveManager.OnAllWavesCleared.RemoveListener(HandleAllWavesCleared);
             }
-        }
-
-        private void RegisterButtonEvents()
-        {
-            if (restartButton != null)
-            {
-                restartButton.onClick.RemoveListener(RestartGame);
-                restartButton.onClick.AddListener(RestartGame);
-            }
-
-            if (mainMenuButton != null)
-            {
-                mainMenuButton.onClick.RemoveListener(GoToMainMenu);
-                mainMenuButton.onClick.AddListener(GoToMainMenu);
-            }
-
-            if (quitButton != null)
-            {
-                quitButton.onClick.RemoveListener(QuitGame);
-                quitButton.onClick.AddListener(QuitGame);
-            }
-        }
-
-        private void UnregisterButtonEvents()
-        {
-            if (restartButton != null)
-            {
-                restartButton.onClick.RemoveListener(RestartGame);
-            }
-
-            if (mainMenuButton != null)
-            {
-                mainMenuButton.onClick.RemoveListener(GoToMainMenu);
-            }
-
-            if (quitButton != null)
-            {
-                quitButton.onClick.RemoveListener(QuitGame);
-            }
-        }
-
-        private void HandleAllWavesCleared()
-        {
-            Log("Last wave clear detected.");
-            ShowGameClear();
         }
 
         private void Log(string message)

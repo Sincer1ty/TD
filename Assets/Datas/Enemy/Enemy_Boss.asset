@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: Boss
   enemyType: 4
-  maxHp: 2000
+  maxHp: 1500
   moveSpeed: 1
   rewardGold: 500
   damageToBase: 10
