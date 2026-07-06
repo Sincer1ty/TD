@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TD.Enemy;
 using TD.Economy;
+using TD.Gameplay;
 using TD.Placement;
 using UnityEngine;
 using UnityEngine.Events;
@@ -20,6 +21,9 @@ namespace TD.Tower
         [SerializeField] private bool logMeleeHitCount;
         [SerializeField] private bool logProjectileEvents;
         [SerializeField] private bool logAreaEvents;
+        [Header("Audio")]
+        [SerializeField] private AudioManager audioManager;
+        [SerializeField] private bool logAttackAudioEvents;
         [Header("Upgrade")]
         [SerializeField] private MonoBehaviour costProviderBehaviour;
         [SerializeField] private int currentLevel = 1;
@@ -36,6 +40,7 @@ namespace TD.Tower
         [SerializeField] private PlacementTile placedTile;
 
         private float attackTimer;
+        private float lastAttackSoundTime = float.NegativeInfinity;
         private ITowerCostProvider costProvider;
 
         public TowerData Data => data;
@@ -56,12 +61,15 @@ namespace TD.Tower
             {
                 animationController = GetComponentInChildren<TowerAnimationController>();
             }
+
+            CacheAudioManager();
         }
 
         private void Reset()
         {
             firePoint = transform;
             animationController = GetComponentInChildren<TowerAnimationController>();
+            audioManager = FindFirstObjectByType<AudioManager>();
         }
 
         private void Update()
@@ -99,6 +107,7 @@ namespace TD.Tower
             currentLevel = 1;
             attackTimer = 0f;
             CacheCostProvider();
+            CacheAudioManager();
             ApplyLevelStats();
         }
 
@@ -394,6 +403,7 @@ namespace TD.Tower
                     {
                         ApplySlow(target);
                         target.TakeDamage(CurrentDamage);
+                        PlayAttackSound();
                     }
                     break;
             }
@@ -493,6 +503,11 @@ namespace TD.Tower
             {
                 Debug.Log($"Melee attack hit {hitCount} enemies.");
             }
+
+            if (hitCount > 0)
+            {
+                PlayAttackSound();
+            }
         }
 
         private void FaceAndPlayAttack(Vector3 targetPosition)
@@ -544,6 +559,8 @@ namespace TD.Tower
                 enemyLayer,
                 logProjectileEvents);
 
+            PlayAttackSound(spawnPoint.position);
+
             if (logProjectileEvents)
             {
                 Debug.Log($"Arrow projectile spawned from {spawnPoint.name} toward {target.name}.");
@@ -594,6 +611,11 @@ namespace TD.Tower
             if (logAreaEvents)
             {
                 Debug.Log($"Area attack hit {hitCount} enemies around tower '{name}' with attackRange {radius}.");
+            }
+
+            if (hitCount > 0)
+            {
+                PlayAttackSound(center);
             }
         }
 
@@ -671,6 +693,53 @@ namespace TD.Tower
             }
         }
 
+        private void PlayAttackSound()
+        {
+            PlayAttackSound(transform.position);
+        }
+
+        private void PlayAttackSound(Vector3 position)
+        {
+            if (data == null)
+            {
+                return;
+            }
+
+            AudioClip clip = data.AttackSound;
+            if (clip == null)
+            {
+                if (logAttackAudioEvents)
+                {
+                    Debug.LogWarning($"Tower '{data.TowerName}' has no attackSound assigned.", this);
+                }
+
+                return;
+            }
+
+            if (Time.time - lastAttackSoundTime < data.MinAttackSoundInterval)
+            {
+                return;
+            }
+
+            AudioManager manager = GetAudioManager();
+            if (manager == null)
+            {
+                if (logAttackAudioEvents)
+                {
+                    Debug.LogWarning($"Tower '{data.TowerName}' cannot play attack sound because AudioManager is missing.", this);
+                }
+
+                return;
+            }
+
+            float pitch = data.RandomizeAttackSoundPitch
+                ? Random.Range(data.AttackSoundPitchRange.x, data.AttackSoundPitchRange.y)
+                : data.AttackSoundPitch;
+
+            manager.PlaySfx(clip, position, data.AttackSoundVolume, pitch);
+            lastAttackSoundTime = Time.time;
+        }
+
         private float GetAttackCooldown()
         {
             return data != null && CurrentAttackSpeed > 0f
@@ -719,6 +788,24 @@ namespace TD.Tower
                 GoldManager goldManager = FindFirstObjectByType<GoldManager>();
                 costProvider = goldManager;
                 costProviderBehaviour = goldManager;
+            }
+        }
+
+        private AudioManager GetAudioManager()
+        {
+            if (audioManager == null)
+            {
+                CacheAudioManager();
+            }
+
+            return audioManager;
+        }
+
+        private void CacheAudioManager()
+        {
+            if (audioManager == null)
+            {
+                audioManager = AudioManager.Instance;
             }
         }
 

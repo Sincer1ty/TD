@@ -14,26 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waveIndex: 10
   enemyGroups:
-  - enemyData: {fileID: 11400000, guid: a1e0fcefa93749359574f3b8bde4f597, type: 2}
-    count: 20
-    spawnIntervalOverride: 0.35
-    delayBeforeGroup: 0
   - enemyData: {fileID: 11400000, guid: a0cc90e1bed94c72824773979a95cac8, type: 2}
-    count: 15
+    count: 10
     spawnIntervalOverride: 0.3
     delayBeforeGroup: 1
   - enemyData: {fileID: 11400000, guid: e11886358134485ab3b1b25ee5d9668f, type: 2}
     count: 8
     spawnIntervalOverride: 0.75
     delayBeforeGroup: 1
-  - enemyData: {fileID: 11400000, guid: 4efdf162f30c44b8b5a805f553faa552, type: 2}
-    count: 8
-    spawnIntervalOverride: 0.6
-    delayBeforeGroup: 1
   - enemyData: {fileID: 11400000, guid: c3d2809bc59244fd8a249acd73bde08a, type: 2}
     count: 1
     spawnIntervalOverride: 0
     delayBeforeGroup: 2
-  spawnInterval: 0.35
+  spawnInterval: 0.55
   waveClearReward: 200
   healthMultiplier: 2

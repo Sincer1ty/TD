@@ -27,6 +27,15 @@ namespace TD.Tower
         [TextArea]
         [SerializeField] private string description;
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip attackSound;
+        [Range(0f, 1f)]
+        [SerializeField] private float attackSoundVolume = 1f;
+        [SerializeField] private float attackSoundPitch = 1f;
+        [SerializeField] private bool randomizeAttackSoundPitch;
+        [SerializeField] private Vector2 attackSoundPitchRange = new Vector2(0.95f, 1.05f);
+        [SerializeField] private float minAttackSoundInterval = 0.05f;
+
         [Header("Mode Tuning")]
         [SerializeField] private GameObject areaEffectPrefab;
         [SerializeField] private float areaEffectScaleMultiplier = 1f;
@@ -58,6 +67,14 @@ namespace TD.Tower
         public float ProjectileLifetime => Mathf.Max(0.01f, projectileLifetime);
         public Sprite Icon => icon;
         public string Description => description;
+        public AudioClip AttackSound => attackSound;
+        public float AttackSoundVolume => Mathf.Clamp01(attackSoundVolume);
+        public float AttackSoundPitch => Mathf.Max(0.01f, attackSoundPitch);
+        public bool RandomizeAttackSoundPitch => randomizeAttackSoundPitch;
+        public Vector2 AttackSoundPitchRange => new Vector2(
+            Mathf.Max(0.01f, Mathf.Min(attackSoundPitchRange.x, attackSoundPitchRange.y)),
+            Mathf.Max(0.01f, Mathf.Max(attackSoundPitchRange.x, attackSoundPitchRange.y)));
+        public float MinAttackSoundInterval => Mathf.Max(0f, minAttackSoundInterval);
         public GameObject AreaEffectPrefab => areaEffectPrefab;
         public float AreaEffectScaleMultiplier => Mathf.Max(0.01f, areaEffectScaleMultiplier);
         public float AreaEffectLifetime => Mathf.Max(0.01f, areaEffectLifetime);
@@ -121,6 +138,12 @@ namespace TD.Tower
             sellRefundRate = Mathf.Clamp01(sellRefundRate);
             projectileSpeed = Mathf.Max(0f, projectileSpeed);
             projectileLifetime = Mathf.Max(0.01f, projectileLifetime);
+            attackSoundVolume = Mathf.Clamp01(attackSoundVolume);
+            attackSoundPitch = Mathf.Max(0.01f, attackSoundPitch);
+            attackSoundPitchRange = new Vector2(
+                Mathf.Max(0.01f, Mathf.Min(attackSoundPitchRange.x, attackSoundPitchRange.y)),
+                Mathf.Max(0.01f, Mathf.Max(attackSoundPitchRange.x, attackSoundPitchRange.y)));
+            minAttackSoundInterval = Mathf.Max(0f, minAttackSoundInterval);
             areaEffectScaleMultiplier = Mathf.Max(0.01f, areaEffectScaleMultiplier);
             areaEffectLifetime = Mathf.Max(0.01f, areaEffectLifetime);
             slowPercent = Mathf.Clamp01(slowPercent);

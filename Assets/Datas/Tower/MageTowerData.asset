@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerName: Mage
   towerType: 2
-  damage: 18
-  attackSpeed: 0.8
-  attackRange: 3
+  damage: 35
+  attackSpeed: 1
+  attackRange: 2.4
   attackMode: 2
   targetPriority: 1
-  cost: 120
-  upgradeCost: 100
+  cost: 320
+  upgradeCost: 250
   sellRefundGold: -1
-  sellRefundRate: 0.5
+  sellRefundRate: 0.7
   prefab: {fileID: 4343967645554337613, guid: 4d7f1fd87d63e5c4f831df0515bc798c, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
@@ -30,6 +30,12 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Area tower for grouped enemies.
+  attackSound: {fileID: 8300000, guid: 61dc09471a6554a4289c099c1ce3415f, type: 3}
+  attackSoundVolume: 1
+  attackSoundPitch: 1
+  randomizeAttackSoundPitch: 0
+  attackSoundPitchRange: {x: 0.95, y: 1.05}
+  minAttackSoundInterval: 0.05
   areaEffectPrefab: {fileID: 3802302459956397560, guid: 4530682cc35cadf4d8c00dbe3b506ee7, type: 3}
   areaEffectScaleMultiplier: 0.23
   areaEffectLifetime: 1.5
@@ -40,17 +46,17 @@ MonoBehaviour:
   slowDuration: 1.5
   levelStats:
   - level: 1
-    damage: 18
-    attackRange: 3
-    attackSpeed: 0.8
+    damage: 35
+    attackRange: 2.4
+    attackSpeed: 1
     upgradeCost: 0
   - level: 2
-    damage: 28
-    attackRange: 3.5
-    attackSpeed: 0.95
-    upgradeCost: 100
+    damage: 50
+    attackRange: 2.4
+    attackSpeed: 0.9
+    upgradeCost: 250
   - level: 3
-    damage: 42
-    attackRange: 4
-    attackSpeed: 1.1
-    upgradeCost: 180
+    damage: 70
+    attackRange: 2.4
+    attackSpeed: 0.8
+    upgradeCost: 400

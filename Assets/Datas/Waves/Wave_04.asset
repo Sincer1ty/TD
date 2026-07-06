@@ -15,13 +15,13 @@ MonoBehaviour:
   waveIndex: 4
   enemyGroups:
   - enemyData: {fileID: 11400000, guid: a1e0fcefa93749359574f3b8bde4f597, type: 2}
-    count: 18
+    count: 20
     spawnIntervalOverride: -1
     delayBeforeGroup: 0
   - enemyData: {fileID: 11400000, guid: a0cc90e1bed94c72824773979a95cac8, type: 2}
     count: 10
-    spawnIntervalOverride: 0.45
+    spawnIntervalOverride: 0.56
     delayBeforeGroup: 1
-  spawnInterval: 0.65
+  spawnInterval: 0.85
   waveClearReward: 35
   healthMultiplier: 1.15

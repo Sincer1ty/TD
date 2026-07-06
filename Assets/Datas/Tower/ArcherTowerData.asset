@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerName: Archer
   towerType: 1
-  damage: 20
-  attackSpeed: 1.2
-  attackRange: 4
+  damage: 40
+  attackSpeed: 0.5
+  attackRange: 3
   attackMode: 1
   targetPriority: 0
-  cost: 80
+  cost: 220
   upgradeCost: 65
   sellRefundGold: -1
-  sellRefundRate: 0.5
+  sellRefundRate: 0.7
   prefab: {fileID: 4343967645554337613, guid: f72854c0e7c9d284a990da580f7a51b7, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 5116014145999484704, guid: c284e10a1bcf3d948aea4a2ab056ea46, type: 3}
@@ -30,6 +30,12 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Long range single-target tower.
+  attackSound: {fileID: 8300000, guid: 0910023a8379eab43bbd275b4a3c79c7, type: 3}
+  attackSoundVolume: 1
+  attackSoundPitch: 1
+  randomizeAttackSoundPitch: 0
+  attackSoundPitchRange: {x: 0.95, y: 1.05}
+  minAttackSoundInterval: 0.05
   areaEffectPrefab: {fileID: 0}
   areaEffectScaleMultiplier: 1
   areaEffectLifetime: 1.5
@@ -40,17 +46,17 @@ MonoBehaviour:
   slowDuration: 1.5
   levelStats:
   - level: 1
-    damage: 20
-    attackRange: 4
-    attackSpeed: 1.2
+    damage: 40
+    attackRange: 3
+    attackSpeed: 0.5
     upgradeCost: 0
   - level: 2
-    damage: 30
-    attackRange: 4.6
-    attackSpeed: 1.45
-    upgradeCost: 65
+    damage: 55
+    attackRange: 3
+    attackSpeed: 0.5
+    upgradeCost: 180
   - level: 3
-    damage: 44
-    attackRange: 5.2
-    attackSpeed: 1.75
-    upgradeCost: 120
+    damage: 75
+    attackRange: 3
+    attackSpeed: 0.5
+    upgradeCost: 300

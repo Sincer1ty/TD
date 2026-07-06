@@ -20,8 +20,8 @@ MonoBehaviour:
     delayBeforeGroup: 0
   - enemyData: {fileID: 11400000, guid: e11886358134485ab3b1b25ee5d9668f, type: 2}
     count: 4
-    spawnIntervalOverride: 1
-    delayBeforeGroup: 1.5
-  spawnInterval: 0.6
+    spawnIntervalOverride: 1.05
+    delayBeforeGroup: 1.05
+  spawnInterval: 0.8
   waveClearReward: 45
   healthMultiplier: 1.25

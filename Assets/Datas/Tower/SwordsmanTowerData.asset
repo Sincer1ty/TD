@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   towerName: Swordsman
   towerType: 0
-  damage: 12
-  attackSpeed: 2
-  attackRange: 1.4
+  damage: 20
+  attackSpeed: 1.2
+  attackRange: 1.55
   attackMode: 0
   targetPriority: 1
-  cost: 10
+  cost: 150
   upgradeCost: 40
   sellRefundGold: -1
-  sellRefundRate: 0.5
+  sellRefundRate: 0.7
   prefab: {fileID: 4343967645554337613, guid: c37e02e51a1d0da40912dcba89eb3f45, type: 3}
   previewPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
@@ -30,6 +30,12 @@ MonoBehaviour:
   projectileLifetime: 3
   icon: {fileID: 0}
   description: Fast melee tower for nearby enemies.
+  attackSound: {fileID: 8300000, guid: ee92dd526d9a1b44f94db40070f53ba0, type: 3}
+  attackSoundVolume: 1
+  attackSoundPitch: 1
+  randomizeAttackSoundPitch: 0
+  attackSoundPitchRange: {x: 0.95, y: 1.05}
+  minAttackSoundInterval: 0.05
   areaEffectPrefab: {fileID: 0}
   areaEffectScaleMultiplier: 1
   areaEffectLifetime: 1.5
@@ -40,17 +46,17 @@ MonoBehaviour:
   slowDuration: 1.5
   levelStats:
   - level: 1
-    damage: 12
-    attackRange: 1.4
-    attackSpeed: 2
+    damage: 20
+    attackRange: 1.55
+    attackSpeed: 1.2
     upgradeCost: 0
   - level: 2
-    damage: 18
-    attackRange: 1.65
-    attackSpeed: 2.4
-    upgradeCost: 40
+    damage: 28
+    attackRange: 1.55
+    attackSpeed: 1.35
+    upgradeCost: 120
   - level: 3
-    damage: 26
-    attackRange: 1.9
-    attackSpeed: 2.8
-    upgradeCost: 80
+    damage: 40
+    attackRange: 1.55
+    attackSpeed: 1.5
+    upgradeCost: 220

@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: Normal
   enemyType: 0
-  maxHp: 100
+  maxHp: 60
   moveSpeed: 2
-  rewardGold: 5
+  rewardGold: 10
   damageToBase: 1
   isBoss: 0
   prefab: {fileID: 2546431474593599657, guid: ac98ec63a284e9d48948ffa4edcab647, type: 3}

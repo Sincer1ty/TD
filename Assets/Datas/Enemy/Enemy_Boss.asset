@@ -15,10 +15,10 @@ MonoBehaviour:
   enemyName: Boss
   enemyType: 4
   maxHp: 2000
-  moveSpeed: 0.8
-  rewardGold: 100
+  moveSpeed: 1
+  rewardGold: 500
   damageToBase: 10
   isBoss: 1
-  prefab: {fileID: 2546431474593599657, guid: ac98ec63a284e9d48948ffa4edcab647, type: 3}
+  prefab: {fileID: 2546431474593599657, guid: 478a05a5db281c44982fe10449fb33be, type: 3}
   icon: {fileID: 0}
   description: Boss enemy for major waves.

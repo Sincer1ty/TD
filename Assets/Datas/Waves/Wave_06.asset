@@ -22,6 +22,6 @@ MonoBehaviour:
     count: 6
     spawnIntervalOverride: 0.9
     delayBeforeGroup: 1
-  spawnInterval: 0.55
+  spawnInterval: 0.75
   waveClearReward: 55
   healthMultiplier: 1.35
