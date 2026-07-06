@@ -9,6 +9,7 @@ namespace TD.Gameplay
         [SerializeField] private int currentLife;
         [SerializeField] private bool initializeOnAwake = true;
         [SerializeField] private bool pauseTimeOnGameOver;
+        [SerializeField] private GameStateManager gameStateManager;
 
         [Header("Events")]
         [SerializeField] private UnityEvent<int> onLifeChanged = new UnityEvent<int>();
@@ -24,6 +25,11 @@ namespace TD.Gameplay
 
         private void Awake()
         {
+            if (gameStateManager == null)
+            {
+                gameStateManager = FindFirstObjectByType<GameStateManager>();
+            }
+
             if (initializeOnAwake)
             {
                 InitializeLife();
@@ -45,7 +51,7 @@ namespace TD.Gameplay
 
         public void TakeDamage(int amount)
         {
-            if (isGameOver || amount <= 0)
+            if (isGameOver || amount <= 0 || IsGameClear())
             {
                 return;
             }
@@ -62,7 +68,7 @@ namespace TD.Gameplay
 
         public void Heal(int amount)
         {
-            if (isGameOver || amount <= 0)
+            if (isGameOver || amount <= 0 || IsGameClear())
             {
                 return;
             }
@@ -88,7 +94,17 @@ namespace TD.Gameplay
                 return;
             }
 
+            if (IsGameClear())
+            {
+                return;
+            }
+
             if (isGameOver && currentLife > 0)
+            {
+                return;
+            }
+
+            if (gameStateManager != null && !gameStateManager.SetGameOver())
             {
                 return;
             }
@@ -103,6 +119,11 @@ namespace TD.Gameplay
             {
                 Time.timeScale = 0f;
             }
+        }
+
+        private bool IsGameClear()
+        {
+            return gameStateManager != null && gameStateManager.IsGameClear();
         }
     }
 }

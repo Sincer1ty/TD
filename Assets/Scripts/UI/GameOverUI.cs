@@ -11,9 +11,15 @@ namespace TD.UI
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private TextMeshProUGUI messageText;
         [SerializeField] private string gameOverMessage = "Game Over";
+        [SerializeField] private GameStateManager gameStateManager;
 
         private void Awake()
         {
+            if (gameStateManager == null)
+            {
+                gameStateManager = FindFirstObjectByType<GameStateManager>();
+            }
+
             if (root == null)
             {
                 root = gameObject;
@@ -64,6 +70,12 @@ namespace TD.UI
 
         public void Show()
         {
+            if (gameStateManager != null && gameStateManager.IsGameClear())
+            {
+                Hide();
+                return;
+            }
+
             if (messageText != null)
             {
                 messageText.text = gameOverMessage;

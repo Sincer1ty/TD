@@ -21,6 +21,7 @@ namespace TD.Waves
         [SerializeField] private EnemySpawner enemySpawner;
         [SerializeField] private GoldManager goldManager;
         [SerializeField] private LifeManager lifeManager;
+        [SerializeField] private GameStateManager gameStateManager;
         [SerializeField] private bool disableSpawnerAutoStart = true;
 
         [Header("Debug")]
@@ -85,7 +86,7 @@ namespace TD.Waves
         {
             SetState("Ready");
 
-            if (autoStartFirstWave && !isGameOver)
+            if (autoStartFirstWave && CanProgressWaves())
             {
                 waveRoutine = StartCoroutine(AutoStartRoutine(autoStartDelay));
             }
@@ -93,7 +94,7 @@ namespace TD.Waves
 
         public void StartWave()
         {
-            if (isGameOver || allWavesCleared || isWaveRunning)
+            if (!CanProgressWaves() || allWavesCleared || isWaveRunning)
             {
                 return;
             }
@@ -104,7 +105,7 @@ namespace TD.Waves
 
         public void StartNextWave()
         {
-            if (isGameOver || allWavesCleared || isWaveRunning)
+            if (!CanProgressWaves() || allWavesCleared || isWaveRunning)
             {
                 return;
             }
@@ -140,7 +141,7 @@ namespace TD.Waves
                 return;
             }
 
-            if (autoStartNextWave && !isGameOver)
+            if (autoStartNextWave && CanProgressWaves())
             {
                 waveRoutine = StartCoroutine(AutoStartRoutine(delayBetweenWaves));
             }
@@ -163,6 +164,16 @@ namespace TD.Waves
             isWaveRunning = false;
             SetState("Game Over");
             Log("Wave progress stopped by game over.");
+        }
+
+        public void HandleGameClear()
+        {
+            StopWaveRoutine();
+            isWaveRunning = false;
+            allEnemiesSpawned = true;
+            allWavesCleared = true;
+            SetState("Game Clear");
+            Log("Wave progress stopped by game clear.");
         }
 
         public void SetEnemySpawner(EnemySpawner spawner)
@@ -230,7 +241,7 @@ namespace TD.Waves
 
             for (int groupIndex = 0; groupIndex < wave.EnemyGroups.Length; groupIndex++)
             {
-                if (isGameOver)
+                if (!CanProgressWaves())
                 {
                     yield break;
                 }
@@ -254,7 +265,7 @@ namespace TD.Waves
 
                 for (int i = 0; i < group.Count; i++)
                 {
-                    if (isGameOver)
+                    if (!CanProgressWaves())
                     {
                         yield break;
                     }
@@ -324,7 +335,7 @@ namespace TD.Waves
 
         private void TryClearWave()
         {
-            if (isGameOver || !isWaveRunning || waveRewardGranted)
+            if (!CanProgressWaves() || !isWaveRunning || waveRewardGranted)
             {
                 return;
             }
@@ -341,6 +352,18 @@ namespace TD.Waves
         {
             if (allWavesCleared)
             {
+                return;
+            }
+
+            if (lifeManager != null && lifeManager.IsDead())
+            {
+                Log("Skipped game clear because player life is 0.");
+                return;
+            }
+
+            if (gameStateManager != null && gameStateManager.IsGameOver())
+            {
+                Log("Skipped game clear because game state is GameOver.");
                 return;
             }
 
@@ -429,6 +452,16 @@ namespace TD.Waves
             {
                 Debug.Log(message);
             }
+        }
+
+        private bool CanProgressWaves()
+        {
+            if (isGameOver)
+            {
+                return false;
+            }
+
+            return gameStateManager == null || gameStateManager.IsPlaying();
         }
 
         private void OnValidate()
